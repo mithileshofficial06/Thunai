@@ -73,7 +73,8 @@ function saved() { try { return JSON.parse(localStorage.getItem("thunai.facts") 
 
 // ---------------------------------------------------------------- API
 async function api(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const auth = typeof acct !== "undefined" && acct.token ? { Authorization: `Bearer ${acct.token}` } : {};
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify(body || {}) });
   if (!r.ok) {
     const msg = (await r.json().catch(() => ({}))).detail || r.statusText;
     if (r.status === 404 && String(msg).includes("session")) await startSession();

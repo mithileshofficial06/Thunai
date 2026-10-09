@@ -1,15 +1,15 @@
 """Thunai web app: FastAPI routes (plain JSON) + the static single-page UI."""
 from typing import Any, Optional
 
-import time
-
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import agent
 import config
+import sms
+import store
 import voice
 from engine import doctor as doctor_engine
 from engine import notify, proactive
@@ -70,7 +70,9 @@ class TtsIn(BaseModel):
 
 class ApproveIn(BaseModel):
     draft_id: str
-    helper_name: str = "Helper"
+    username: Optional[str] = None  # helper sign-in, when the page is not logged in as a helper
+    password: Optional[str] = None
+    helper_name: Optional[str] = None  # ignored: the name comes from the helper's account
 
 
 def _session(session_id):
@@ -166,10 +168,30 @@ def helper_queue(session_id: Optional[str] = None):
     return {"items": agent.helper_queue(session_id)}
 
 
+def _bearer(authorization):
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization[7:].strip()
+    return None
+
+
+def _helper(authorization, username=None, password=None):
+    """Only a helper may approve: a helper login token, or the helper's username + password."""
+    user = store.user_for(_bearer(authorization))
+    if user and user["role"] == "helper":
+        return user
+    if username and password:
+        user = store.login(username, password)
+        if user and user["role"] == "helper":
+            return user
+        raise HTTPException(401, "wrong helper username or password")
+    raise HTTPException(401, "helper sign-in required to approve")
+
+
 @app.post("/api/helper/approve")
-def helper_approve(body: ApproveIn):
+def helper_approve(body: ApproveIn, authorization: Optional[str] = Header(None)):
+    helper = _helper(authorization, body.username, body.password)
     try:
-        events, draft = agent.approve(body.draft_id, body.helper_name.strip() or "Helper")
+        events, draft = agent.approve(body.draft_id, helper.get("name") or "Helper")
     except KeyError as exc:
         raise HTTPException(404, "draft not found") from exc
     return {"events": events, "draft": draft}
@@ -233,35 +255,43 @@ def tts(body: TtsIn):
 
 
 # ------------------------------------------------------------ follow-up
-OUTBOX = []  # prototype: messages are prepared here; no real SMS is sent
+def _recipient(session_id, authorization):
+    """(user_id, phone) of the family this session belongs to; (None, None) for a guest."""
+    user = store.user_for(_bearer(authorization))
+    if user and user["role"] == "family":
+        return user["id"], store.phone_of(user["id"])
+    return store.chat_owner(session_id)
 
 
-def _outbox_add(session_id, text, reason):
-    msg = {"id": len(OUTBOX) + 1, "session_id": session_id, "to": "(not sent: prototype outbox)", "text": text,
-           "reason": reason, "created": time.strftime("%Y-%m-%d %H:%M:%S"), "status": "outbox"}
-    OUTBOX.append(msg)
-    return msg
+def _sms_event(msg, what_en, what_ta):
+    if msg["status"] == "sent":
+        return agent.ev("tool", "", f"{what_en}: SMS sent to {msg['to']}", f"{what_ta}: {msg['to']} எண்ணுக்குக் குறுஞ்செய்தி அனுப்பப்பட்டது")
+    if msg["status"] == "failed":
+        return agent.ev("error", "", f"{what_en}: SMS could not be sent ({msg['detail']}); kept in the outbox",
+                        f"{what_ta}: குறுஞ்செய்தி அனுப்ப முடியவில்லை; outbox-இல் உள்ளது")
+    return agent.ev("tool", "", f"{what_en}: SMS prepared in the outbox (never share your OTP)",
+                    f"{what_ta}: குறுஞ்செய்தி outbox-இல் தயாரானது (OTP எச்சரிக்கையுடன்)")
 
 
 @app.post("/api/sms/summary")
-def sms_summary(body: SummaryIn):
+def sms_summary(body: SummaryIn, authorization: Optional[str] = Header(None)):
     s = _session(body.session_id)
-    msg = _outbox_add(s["id"], notify.summary_sms(s["snapshot"], body.lang if body.lang in ("ta", "en") else "ta"), "summary")
-    events = [agent.ev("tool", "", "Prepared a summary SMS in the outbox (benefit, next offices, never share your OTP)",
-                       "சுருக்கக் குறுஞ்செய்தி outbox-இல் தயாரானது (நன்மை, அடுத்த அலுவலகங்கள், OTP எச்சரிக்கை)")]
-    return {"events": events, "message": msg}
+    uid, phone = _recipient(s["id"], authorization)
+    text = notify.summary_sms(s["snapshot"], body.lang if body.lang in ("ta", "en") else "ta")
+    msg = sms.deliver(s["id"], uid, phone, text, "summary")
+    return {"events": [_sms_event(msg, "Summary of benefits and next steps", "நன்மைகள், அடுத்த படிகள் சுருக்கம்")], "message": msg}
 
 
 @app.get("/api/outbox")
 def outbox(session_id: Optional[str] = None):
-    msgs = [m for m in OUTBOX if session_id is None or m["session_id"] == session_id]
-    return {"messages": list(reversed(msgs))}
+    return {"messages": store.list_outbox(session_id)}
 
 
 @app.post("/api/simulate")
-def simulate(body: SimIn):
+def simulate(body: SimIn, authorization: Optional[str] = Header(None)):
     """'N days later': the agent follows up on its own (reminders, deadlines, escalation)."""
     s = _session(body.session_id)
+    uid, phone = _recipient(s["id"], authorization)
     result = proactive.simulate(s["snapshot"], agent.helper_queue(s["id"]), max(1, min(body.days, 60)))
     events = result["events"]
     for e in events:
@@ -269,7 +299,7 @@ def simulate(body: SimIn):
         if d.get("escalate") and all(i.get("key") != "follow:escalation" for i in s["helper_queue"]):
             agent._queue_escalation(s, d.get("reason_en", "Task open too long"), d.get("reason_ta") or d.get("reason_en", ""), "follow:escalation")
     for m in result["messages"]:
-        _outbox_add(s["id"], m["text"], m["reason"])
+        sms.deliver(s["id"], uid, phone, m["text"], m["reason"])
     return _out(s, events, s["snapshot"])
 
 

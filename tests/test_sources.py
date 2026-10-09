@@ -68,13 +68,41 @@ def test_does_not_touch_schemes_json():
     assert (sources.config.DATA_DIR / "schemes.json").read_bytes() == before
 
 
-def test_endpoint(monkeypatch):
+@pytest.fixture
+def admin_client(tmp_path, monkeypatch):
+    """The admin router on a temp sqlite DB (seeded helper), with page fetches faked."""
+    import routes_auth  # noqa: F401  (imported before routes_admin)
     import routes_admin
+    import store
+    monkeypatch.setattr(store, "DB_PATH", tmp_path / "test.db")
+    store.TOKENS.clear()
+    store.init()
     monkeypatch.setattr(sources, "fetch", _const("<p>page</p>"))
     app = FastAPI()
     app.include_router(routes_admin.router)
-    body = TestClient(app).get("/api/admin/check_sources").json()
+    return TestClient(app), store
+
+
+def _auth(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_endpoint(admin_client):
+    client, store = admin_client
+    token = store.new_token(store.login("helper", "helper123")["id"])
+    r = client.get("/api/admin/check_sources", headers=_auth(token))
+    assert r.status_code == 200, r.text
+    body = r.json()
     assert body["results"] and all(r["status"] == "baseline"
                                    for r in body["results"] if r["url"])
     assert "never changed automatically" in body["note_en"]
     assert body["note_ta"]
+
+
+def test_endpoint_is_helper_only(admin_client):
+    client, store = admin_client
+    assert client.get("/api/admin/check_sources").status_code == 401
+    assert client.get("/api/admin/check_sources", headers=_auth("bogus")).status_code == 401
+    family = store.register("9876543210", "4821")
+    r = client.get("/api/admin/check_sources", headers=_auth(store.new_token(family["id"])))
+    assert r.status_code == 403 and r.json()["detail"] == "helper sign-in required"

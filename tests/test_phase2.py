@@ -51,11 +51,22 @@ def test_approve_removes_watermark_and_allows_print():
     r = load("murugan_family")
     d = draft(r["session_id"], "bank_seeding_request", member_id="m2")
     assert d["draft"]["member_name"] == "Selvi"
-    a = client.post("/api/helper/approve", json={"draft_id": d["draft"]["draft_id"], "helper_name": "Priya"}).json()
+    a = client.post("/api/helper/approve", json={"draft_id": d["draft"]["draft_id"], "username": "helper", "password": "helper123"}).json()
     assert a["draft"]["status"] == "APPROVED" and "Priya approved" in a["events"][0]["text_en"]
     html = client.get(d["draft"]["html_url"]).text
     assert "window.print" in html and 'class="watermark"' not in html and "Priya" in html
     assert "Selvi" in html and "NPCI" in html
+
+
+def test_only_a_helper_can_approve():
+    r = load("murugan_family")
+    did = draft(r["session_id"], "application_pack")["draft"]["draft_id"]
+    assert client.post("/api/helper/approve", json={"draft_id": did}).status_code == 401
+    bad = client.post("/api/helper/approve", json={"draft_id": did, "username": "helper", "password": "wrong"})
+    assert bad.status_code == 401
+    assert client.get(f"/letter/{did}").text.count("window.print") == 0  # still a draft
+    ok = client.post("/api/helper/approve", json={"draft_id": did, "username": "helper", "password": "helper123"})
+    assert ok.status_code == 200 and ok.json()["draft"]["approved_by"] == "Priya"
 
 
 def test_letter_never_invents_numbers():

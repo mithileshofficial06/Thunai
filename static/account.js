@@ -8,6 +8,9 @@ Object.assign(T.ta, {
   confirmDelete: "உங்கள் கணக்கு மற்றும் சேமித்த உரையாடல்கள் அனைத்தும் நீக்கப்படும். தொடரவா?", saved: "சேமிக்கப்பட்டது", loggedIn: "உள்நுழைந்துள்ளீர்கள்",
   sourcesTitle: "அதிகாரப்பூர்வ ஆதாரச் சரிபார்ப்பு", checkSources: "ஆதாரங்களைச் சரிபார்", sources: { baseline: "அடிப்படை பதிவு", unchanged: "மாற்றமில்லை", changed: "மாறியுள்ளது: சரிபார்க்க வேண்டும்", unreachable: "அணுக முடியவில்லை" },
   stale: "தகவல் பழையதாக இருக்கலாம்", reopened: "முந்தைய உரையாடல் மீண்டும் திறக்கப்பட்டது.",
+  rematchTitle: "புதிய திட்டங்கள்: சேமித்த குடும்பங்களை மறுசரிபார்", rematchBtn: "சேமித்த குடும்பங்களை மறுசரிபார்",
+  rematchNote: "திட்ட விதிகள் புதுப்பிக்கப்பட்ட பின், சேமித்த ஒவ்வொரு குடும்பத்தையும் முகவர் மீண்டும் சரிபார்த்து, புதிதாகத் தகுதி பெறுபவர்களுக்குக் குறுஞ்செய்தி தயாரிக்கிறது.",
+  rmChecked: "சரிபார்த்த குடும்பங்கள்", rmAlerted: "புதிதாகத் தகுதி பெற்றவை", rmNone: "புதிதாகத் தகுதி பெற்ற குடும்பம் இல்லை.", rmSchemes: "செயலில் உள்ள திட்டங்கள்",
   gateTitle: "துணையில் உள்நுழையவும்", gateSub: "உங்கள் குடும்பத்தின் முன்னேற்றம் சேமிக்கப்படும்; எப்போது வேண்டுமானாலும் தொடரலாம்.",
   or: "அல்லது", guestNote: "விருந்தினர் முறையில் எதுவும் சேமிக்கப்படாது. மாதிரி குடும்பங்களைப் பார்க்க இது போதும்.",
   needConsent: "பதிவு செய்ய ஒப்புதல் பெட்டியைத் தேர்ந்தெடுக்கவும்.",
@@ -26,6 +29,9 @@ Object.assign(T.en, {
   confirmDelete: "Your account and all saved conversations will be deleted. Continue?", saved: "Saved", loggedIn: "Logged in",
   sourcesTitle: "Official source check", checkSources: "Check sources", sources: { baseline: "Baseline recorded", unchanged: "Unchanged", changed: "Changed: needs review", unreachable: "Unreachable" },
   stale: "Information may be old", reopened: "Previous conversation reopened.",
+  rematchTitle: "New schemes: re-check saved families", rematchBtn: "Re-check saved families",
+  rematchNote: "After the scheme rules are updated, the agent re-checks every saved family and prepares an SMS for families who now qualify.",
+  rmChecked: "Families checked", rmAlerted: "Newly eligible", rmNone: "No family is newly eligible.", rmSchemes: "Schemes active",
   gateTitle: "Sign in to Thunai", gateSub: "Your family's progress is saved so you can continue any time.",
   or: "or", guestNote: "Nothing is saved in guest mode. Enough to try the demo families.",
   needConsent: "Please tick the consent box to register.",
@@ -208,21 +214,39 @@ renderHelper = function () {
   if (!acct.user || acct.user.role !== "helper") return;
   const sec = document.createElement("div");
   sec.innerHTML = `<h3 class="p2-h">${esc(t("sourcesTitle"))}</h3>
-    <button class="btn btn-outline btn-sm" id="srcBtn">${esc(t("checkSources"))}</button><div id="srcOut"></div>`;
+    <button class="btn btn-outline btn-sm" id="srcBtn">${esc(t("checkSources"))}</button><div id="srcOut"></div>
+    <h3 class="p2-h">${esc(t("rematchTitle"))}</h3><p class="muted small">${esc(t("rematchNote"))}</p>
+    <button class="btn btn-outline btn-sm" id="rmBtn">${esc(t("rematchBtn"))}</button><div id="rmOut"></div>`;
   $("#panel-helper").appendChild(sec);
   $("#srcBtn").onclick = checkSources;
+  $("#rmBtn").onclick = rematchFamilies;
 };
 
 async function checkSources() {
   $("#srcOut").innerHTML = `<p class="muted small">${esc(t("thinking"))}</p>`;
   try {
-    const r = await apiGet("/api/admin/check_sources");
+    const r = await authApi("GET", "/api/admin/check_sources");
     const lvl = { unchanged: "GREEN", baseline: "GREEN", changed: "YELLOW", unreachable: "RED" };
     $("#srcOut").innerHTML = `<table class="data-table"><tbody>` + r.results.map((x) => `<tr><td>${esc(x.name_en)}</td>
       <td><span class="lvl ${lvl[x.status] || "YELLOW"}">${esc(t("sources")[x.status] || x.status)}</span>${x.stale ? ` <span class="lvl YELLOW">${esc(t("stale"))}</span>` : ""}</td>
       <td class="small">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(new URL(x.url).hostname)}</a>` : ""}</td></tr>`).join("") +
       `</tbody></table><p class="muted small">${esc(state.lang === "ta" ? r.note_ta : r.note_en)}</p>`;
   } catch (e) { $("#srcOut").innerHTML = ""; toast(`${t("warn")} ${e.message}`); }
+}
+
+async function rematchFamilies() {
+  $("#rmOut").innerHTML = `<p class="muted small">${esc(t("thinking"))}</p>`;
+  try {
+    const r = await authApi("POST", "/api/admin/rematch");
+    enqueue(r.events || []);
+    const hits = (r.results || []).filter((x) => (x.new || []).length);
+    $("#rmOut").innerHTML = `<p class="small">${esc(t("rmChecked"))}: <strong>${r.checked}</strong> · ${esc(t("rmAlerted"))}: <strong>${r.alerted}</strong>` +
+      (r.schemes_enabled ? ` · ${esc(t("rmSchemes"))}: ${r.schemes_enabled}` : "") + "</p>" +
+      (hits.length ? `<ul class="p2-list">` + hits.map((x) => `<li><strong>${esc(x.title)}</strong><div class="small">` +
+        x.new.map((n) => `${esc(short(state.lang === "ta" ? n.name_ta : n.name_en))}${n.member_name ? " (" + esc(n.member_name) + ")" : ""}: ${esc(state.lang === "ta" ? n.benefit_ta : n.benefit_en)}`).join("<br>") +
+        "</div></li>").join("") + "</ul>" : `<p class="muted small">${esc(t("rmNone"))}</p>`) +
+      ((r.messages || []).length ? `<ul class="p2-list">` + r.messages.map((m) => `<li><div class="sms">${esc(m.text)}</div><div class="muted small">${esc(m.to)} · ${esc(m.status)}</div></li>`).join("") + "</ul>" : "");
+  } catch (e) { $("#rmOut").innerHTML = ""; toast(`${t("warn")} ${e.message}`); }
 }
 
 document.addEventListener("DOMContentLoaded", () => setTimeout(() => {

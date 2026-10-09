@@ -271,3 +271,7 @@ body.gated .layout, body.gated .bottom-tabs, body.gated .demo-group { display: n
 }
 
 body.gated #clearBtn, body.gated #speakerBtn { display: none !important; }
+
+.helper-signin { border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem .75rem; margin: .4rem 0 .8rem; background: #FAFBFC; }
+.helper-signin label { display: inline-block; margin: .35rem 1rem 0 0; }
+.helper-signin .inline-input { margin-bottom: 0; }

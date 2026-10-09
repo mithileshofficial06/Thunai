@@ -23,7 +23,7 @@
 | `POST /api/doctor` | `{"session_id", "entry_id"?, "answer"?: "yes"\|"no"\|"dont_know"}` | `Out` + `step: DoctorStep` (400 if no open question) |
 | `POST /api/letter` | `{"session_id", "kind", "member_id"?, "doc_id"?}` | `Out` + `draft: Draft` (400 if the letter doesn't apply) |
 | `GET /api/helper/queue` | `?session_id=` optional | `{"items": [Draft]}` (newest first) |
-| `POST /api/helper/approve` | `{"draft_id", "helper_name"}` | `{"events", "draft": Draft}` |
+| `POST /api/helper/approve` | `{"draft_id"}` + helper login token, **or** `{"draft_id", "username", "password"}` of a helper account | `{"events", "draft": Draft}` · 401 without a helper sign-in (only helpers approve; the approver's name comes from the account) |
 | `GET /letter/{draft_id}` | — | printable HTML (DRAFT watermark until approved; Print only when approved) |
 | `GET /api/sample_docs/{persona}` | — | `{"persona", "cards": [SampleCard]}` |
 | `POST /api/demo/{persona}` | `?session_id=` `?live=1` optional · `murugan_family` \| `revathi_docs` \| `meena` \| `lakshmi_paati` | `Out` + `reply` |
@@ -33,7 +33,7 @@
 | `POST /api/auth/login` · `/api/auth/logout` | `{"phone", "pin"}` (helper: `{"username", "password"}`) | `{"token", "user"}` · `{}` |
 | `GET /api/history` · `GET /api/history/{chat_id}` | header `Authorization: Bearer <token>` | `{"chats": [ChatSummary]}` · `Out` (reopened session) |
 | `DELETE /api/me` | token | `{"deleted": true}` |
-| `POST /api/sms/summary` | `{"session_id"}` | `{"events", "message": OutboxMessage}` |
+| `POST /api/sms/summary` | `{"session_id", "lang"}` (+ family login token → sent to that number) | `{"events", "message": OutboxMessage}` |
 | `GET /api/outbox` | `?session_id=` optional | `{"messages": [OutboxMessage]}` |
 | `POST /api/simulate` | `{"session_id", "days": 15}` | `Out` (events of type `autonomous`) |
 | `POST /api/rematch` | — | `{"events", "messages": [OutboxMessage]}` |
@@ -103,9 +103,12 @@ Ticking `fix_name` sets the printed name to the Aadhaar name. A finished task th
 ```json
 { "user": { "id": 1, "phone_masked": "98xxxxxx10", "role": "family | helper", "name": "" } }
 { "chat": { "chat_id": "", "title": "Murugan family", "updated": "2026-10-09T14:02:00", "rupees_per_year": 30000 } }
-{ "message": { "id": 1, "to": "98xxxxxx10 | (guest: not sent)", "text": "Thunai: ...", "reason": "summary | reminder | deadline | new_scheme",
-               "created": "2026-10-09T14:05:00", "status": "outbox" } }
+{ "message": { "id": 1, "session_id": "", "to": "98xxxxxx10 | (guest: no number)", "text": "Thunai: ...",
+               "reason": "summary | reminder | deadline | escalation | new_scheme",
+               "created": "2026-10-09T14:05:00", "status": "outbox | sent | failed", "detail": "" } }
 ```
+**SMS delivery (`sms.py`):** every message is stored in the `outbox` table. When `SMS_PROVIDER=twilio` and the three Twilio settings are present, a message to a logged-in family is also **sent** (status `sent` / `failed`); otherwise it stays `outbox` (the prototype default; real SMS needs a paid or trial SMS account). Login tokens are stored in the `tokens` table, so a server restart keeps users logged in.
+
 Phone numbers are shown masked in every response. The PIN is never returned. Outbox messages never contain ID numbers and always end with the "never share your OTP" line.
 
 ## 5. Module signatures (pure functions where possible; easy to test)

@@ -80,9 +80,33 @@ def test_register_login_save_history_reopen():
     assert r.status_code == 200, r.text
     out = r.json()
     assert out["snapshot"]["rupees_per_year"] == 30000
-    assert out["session_id"] != s["id"] and out["session_id"] in agent.SESSIONS
+    assert out["session_id"] == s["id"] and out["session_id"] in agent.SESSIONS  # reopened under the chat's id
     assert out["events"][0]["text_en"] == "hi" and out["title"] == chat["title"]
+    assert out["drafts"] == agent.helper_queue(s["id"])
     no_secret(r.text)
+
+
+def test_reopen_then_save_keeps_one_chat():
+    token = register().json()["token"]
+    s = murugan_session()
+    chat_id = client.post("/api/history/save", json={"session_id": s["id"]}, headers=auth(token)).json()["chat"]["chat_id"]
+    out = client.get(f"/api/history/{chat_id}", headers=auth(token)).json()
+    assert out["session_id"] == chat_id
+    assert agent.SESSIONS[chat_id]["snapshot"]["rupees_per_year"] == 30000
+    r = client.post("/api/history/save", json={"session_id": out["session_id"], "events": out["events"]},
+                    headers=auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["chat"]["chat_id"] == chat_id
+    chats = client.get("/api/history", headers=auth(token)).json()["chats"]
+    assert [c["chat_id"] for c in chats] == [chat_id]
+
+
+def test_save_records_eligible_schemes():
+    token = register().json()["token"]
+    s = murugan_session()
+    client.post("/api/history/save", json={"session_id": s["id"]}, headers=auth(token))
+    (row,) = store.all_family_chats()
+    assert row["eligible"] == ["kmut:m2", "pm_kisan", "pudhumai_penn:m3"]
 
 
 def test_wrong_pin_401():

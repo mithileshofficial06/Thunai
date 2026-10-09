@@ -27,8 +27,8 @@ def ev(type_, icon, en, ta=None, **detail):
     return {"type": type_, "icon": icon, "text_en": en, "text_ta": ta or en, "detail": detail}
 
 
-def new_session(saved_facts=None):
-    sid = uuid.uuid4().hex[:12]
+def new_session(saved_facts=None, sid=None):
+    sid = sid or uuid.uuid4().hex[:12]
     facts = copy.deepcopy(saved_facts) if saved_facts else empty_facts()
     facts.setdefault("tasks", {})
     snap = recompute(facts)

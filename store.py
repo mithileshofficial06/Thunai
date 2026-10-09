@@ -1,6 +1,7 @@
-"""Accounts + saved chats (stdlib sqlite3). PINs are stored only as PBKDF2 hashes.
+"""Accounts, saved chats, login tokens and the SMS outbox (stdlib sqlite3).
 
-Tokens live in memory (TOKENS); a server restart logs everyone out, which is fine for the demo.
+PINs are stored only as PBKDF2 hashes. Login tokens are kept in the database (with an in-memory
+cache), so a server restart does not log anyone out.
 """
 import datetime as dt
 import hashlib
@@ -14,7 +15,7 @@ import config
 
 DB_PATH = config.ROOT / "thunai.db"
 ITERATIONS = 100_000
-TOKENS = {}  # token -> user_id
+TOKENS = {}  # cache: token -> user_id (the tokens table is the source of truth)
 
 HELPER_USERNAME, HELPER_PASSWORD, HELPER_NAME = "helper", "helper123", "Priya"
 
@@ -41,6 +42,13 @@ def init():
         con.execute("""CREATE TABLE IF NOT EXISTS chats (
             id TEXT PRIMARY KEY, user_id INTEGER, title TEXT, facts_json TEXT,
             events_json TEXT, rupees INTEGER, updated TEXT)""")
+        cols = {r[1] for r in con.execute("PRAGMA table_info(chats)")}
+        if "eligible_json" not in cols:  # added later: schemes the family qualified for at the last check
+            con.execute("ALTER TABLE chats ADD COLUMN eligible_json TEXT")
+        con.execute("CREATE TABLE IF NOT EXISTS tokens (token TEXT PRIMARY KEY, user_id INTEGER, created TEXT)")
+        con.execute("""CREATE TABLE IF NOT EXISTS outbox (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, user_id INTEGER, to_masked TEXT,
+            text TEXT, reason TEXT, created TEXT, status TEXT, detail TEXT)""")
         exists = con.execute("SELECT 1 FROM users WHERE phone = ?", (HELPER_USERNAME,)).fetchone()
     con.close()
     if not exists:
@@ -84,6 +92,12 @@ def _user_row(user_id):
         return con.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     finally:
         con.close()
+
+
+def phone_of(user_id):
+    """Raw phone number of a family account (for SMS); None for helpers or unknown users."""
+    row = _user_row(user_id)
+    return row["phone"] if row and row["role"] == "family" else None
 
 
 def get_user(user_id):
@@ -136,19 +150,21 @@ def _chat_public(row, full=False):
     return out
 
 
-def save_chat(user_id, chat_id, title, facts, events, rupees):
+def save_chat(user_id, chat_id, title, facts, events, rupees, eligible=None):
     con = _conn()
     try:
         with con:
             owner = con.execute("SELECT user_id FROM chats WHERE id = ?", (chat_id,)).fetchone()
             if owner and owner["user_id"] != user_id:
                 raise PermissionError("chat belongs to another user")
-            con.execute("""INSERT INTO chats (id, user_id, title, facts_json, events_json, rupees, updated)
-                           VALUES (?,?,?,?,?,?,?)
+            con.execute("""INSERT INTO chats (id, user_id, title, facts_json, events_json, rupees, updated, eligible_json)
+                           VALUES (?,?,?,?,?,?,?,?)
                            ON CONFLICT(id) DO UPDATE SET title=excluded.title, facts_json=excluded.facts_json,
-                           events_json=excluded.events_json, rupees=excluded.rupees, updated=excluded.updated""",
+                           events_json=excluded.events_json, rupees=excluded.rupees, updated=excluded.updated,
+                           eligible_json=excluded.eligible_json""",
                         (chat_id, user_id, title, json.dumps(facts, ensure_ascii=False),
-                         json.dumps(events or [], ensure_ascii=False), int(rupees or 0), _now()))
+                         json.dumps(events or [], ensure_ascii=False), int(rupees or 0), _now(),
+                         json.dumps(sorted(eligible or []))))
             row = con.execute("SELECT * FROM chats WHERE id = ?", (chat_id,)).fetchone()
         return _chat_public(row)
     finally:
@@ -173,11 +189,48 @@ def get_chat(user_id, chat_id):
         con.close()
 
 
+def chat_owner(chat_id):
+    """(user_id, phone) of the family account that saved this conversation, or (None, None)."""
+    con = _conn()
+    try:
+        row = con.execute("""SELECT u.id, u.phone, u.role FROM chats c JOIN users u ON u.id = c.user_id
+                             WHERE c.id = ?""", (chat_id,)).fetchone()
+    finally:
+        con.close()
+    if row is None or row["role"] != "family":
+        return None, None
+    return row["id"], row["phone"]
+
+
+def all_family_chats():
+    """Every saved family conversation (for the new-scheme re-match)."""
+    con = _conn()
+    try:
+        rows = con.execute("""SELECT c.id, c.user_id, c.title, c.facts_json, c.eligible_json, u.phone
+                              FROM chats c JOIN users u ON u.id = c.user_id WHERE u.role = 'family'""").fetchall()
+    finally:
+        con.close()
+    return [{"chat_id": r["id"], "user_id": r["user_id"], "title": r["title"], "phone": r["phone"],
+             "facts": json.loads(r["facts_json"] or "null"),
+             "eligible": None if r["eligible_json"] is None else json.loads(r["eligible_json"])} for r in rows]
+
+
+def set_eligible(chat_id, keys):
+    con = _conn()
+    try:
+        with con:
+            con.execute("UPDATE chats SET eligible_json = ? WHERE id = ?", (json.dumps(sorted(keys)), chat_id))
+    finally:
+        con.close()
+
+
 def delete_user(user_id):
     con = _conn()
     try:
         with con:
             con.execute("DELETE FROM chats WHERE user_id = ?", (user_id,))
+            con.execute("DELETE FROM outbox WHERE user_id = ?", (user_id,))
+            con.execute("DELETE FROM tokens WHERE user_id = ?", (user_id,))
             con.execute("DELETE FROM users WHERE id = ?", (user_id,))
     finally:
         con.close()
@@ -188,14 +241,73 @@ def delete_user(user_id):
 # ----------------------------------------------------------------- tokens
 def new_token(user_id):
     token = secrets.token_urlsafe(24)
+    con = _conn()
+    try:
+        with con:
+            con.execute("INSERT INTO tokens (token, user_id, created) VALUES (?,?,?)", (token, user_id, _now()))
+    finally:
+        con.close()
     TOKENS[token] = user_id
     return token
 
 
 def user_for(token):
-    uid = TOKENS.get(token or "")
-    return get_user(uid) if uid is not None else None
+    if not token:
+        return None
+    uid = TOKENS.get(token)
+    if uid is None:
+        con = _conn()
+        try:
+            row = con.execute("SELECT user_id FROM tokens WHERE token = ?", (token,)).fetchone()
+        finally:
+            con.close()
+        if row is None:
+            return None
+        uid = TOKENS[token] = row["user_id"]
+    return get_user(uid)
 
 
 def revoke(token):
     TOKENS.pop(token or "", None)
+    con = _conn()
+    try:
+        with con:
+            con.execute("DELETE FROM tokens WHERE token = ?", (token or "",))
+    finally:
+        con.close()
+
+
+# ----------------------------------------------------------------- outbox
+def mask(phone):
+    phone = str(phone or "")
+    return phone[:2] + "xxxxxx" + phone[-2:] if len(phone) >= 4 else phone
+
+
+def add_outbox(session_id, user_id, to_masked, text, reason, status, detail=""):
+    con = _conn()
+    try:
+        with con:
+            cur = con.execute("""INSERT INTO outbox (session_id, user_id, to_masked, text, reason, created, status, detail)
+                                 VALUES (?,?,?,?,?,?,?,?)""",
+                              (session_id, user_id, to_masked, text, reason, _now(), status, detail))
+            row = con.execute("SELECT * FROM outbox WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return _outbox_public(row)
+    finally:
+        con.close()
+
+
+def _outbox_public(row):
+    return {"id": row["id"], "session_id": row["session_id"], "to": row["to_masked"], "text": row["text"],
+            "reason": row["reason"], "created": row["created"], "status": row["status"], "detail": row["detail"]}
+
+
+def list_outbox(session_id=None):
+    con = _conn()
+    try:
+        if session_id:
+            rows = con.execute("SELECT * FROM outbox WHERE session_id = ? ORDER BY id DESC", (session_id,)).fetchall()
+        else:
+            rows = con.execute("SELECT * FROM outbox ORDER BY id DESC LIMIT 200").fetchall()
+        return [_outbox_public(r) for r in rows]
+    finally:
+        con.close()

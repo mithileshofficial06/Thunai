@@ -11,7 +11,8 @@ Object.assign(T.ta, {
   draftLetter: "கடித வரைவு தயாரி", restart: "மீண்டும் தொடங்கு", srcLabel: "ஆதாரம்", office: "அலுவலகம்",
   suggested: "பரிந்துரைக்கப்பட்ட கடிதங்கள்", drafts: "வரைவுகள்", draft: "வரைவு தயாரி", open: "திற", noLetters: "இப்போது பரிந்துரைக்க கடிதம் இல்லை.", noDrafts: "இன்னும் வரைவுகள் இல்லை.",
   stDraft: "வரைவு", stApproved: "ஒப்புதல் பெற்றது", stOpen: "நிலுவையில்", stReviewed: "பரிசீலிக்கப்பட்டது",
-  helperName: "உதவியாளர் பெயர்", approve: "ஒப்புதல் அளி", reviewed: "பரிசீலிக்கப்பட்டது எனக் குறி", noQueue: "ஒப்புதலுக்குக் காத்திருப்பவை இல்லை.",
+  helperAs: "உதவியாளராக உள்நுழைந்துள்ளீர்கள்:", helperSignin: "ஒப்புதல் அளிக்க உதவியாளர் உள்நுழைவு தேவை.", helperSigninNote: "பயிற்சி பெற்ற உதவியாளர் மட்டுமே ஒப்புதல் அளிக்க முடியும்.",
+  helperUser: "உதவியாளர் பயனர் பெயர்", helperPass: "கடவுச்சொல்", helperNeed: "ஒப்புதல் அளிக்க உதவியாளர் கடவுச்சொல்லை உள்ளிடவும்.", approve: "ஒப்புதல் அளி", reviewed: "பரிசீலிக்கப்பட்டது எனக் குறி", noQueue: "ஒப்புதலுக்குக் காத்திருப்பவை இல்லை.",
   helperIntro: "e-சேவை / NSS உதவியாளர் ஒவ்வொரு கடிதத்தையும் சரிபார்த்து ஒப்புதல் அளிக்கிறார். ஒப்புதல் இல்லாமல் அச்சிட முடியாது.",
   followIntro: "முகவர் தானாகவே நினைவூட்டுகிறது, காலக்கெடுவை எச்சரிக்கிறது, தேங்கிய பணிகளை உதவியாளரிடம் அனுப்புகிறது.",
   sendSummary: "சுருக்கக் குறுஞ்செய்தி தயாரி", shareWa: "WhatsApp-இல் பகிர்", simulate: "15 நாட்களுக்குப் பிறகு (உருவகப்படுத்து)",
@@ -30,7 +31,8 @@ Object.assign(T.en, {
   draftLetter: "Draft the letter", restart: "Start again", srcLabel: "Source", office: "Office",
   suggested: "Suggested letters", drafts: "Drafts", draft: "Draft", open: "Open", noLetters: "No letter is suggested right now.", noDrafts: "No drafts yet.",
   stDraft: "Draft", stApproved: "Approved", stOpen: "Open", stReviewed: "Reviewed",
-  helperName: "Helper name", approve: "Approve", reviewed: "Mark reviewed", noQueue: "Nothing waiting for approval.",
+  helperAs: "Signed in as helper:", helperSignin: "Helper sign-in needed to approve.", helperSigninNote: "Only a trained helper can approve letters.",
+  helperUser: "Helper username", helperPass: "Password", helperNeed: "Enter the helper password to approve.", approve: "Approve", reviewed: "Mark reviewed", noQueue: "Nothing waiting for approval.",
   helperIntro: "An e-Sevai / NSS helper checks and approves every letter. Letters cannot be printed without approval.",
   followIntro: "The agent reminds, warns about deadlines and escalates stuck tasks to a helper on its own.",
   sendSummary: "Prepare summary SMS", shareWa: "Share on WhatsApp", simulate: "Simulate 15 days later",
@@ -40,7 +42,8 @@ Object.assign(T.en, {
 T.ta.kind.autonomous = "தானியங்கி பின்தொடர்தல்";
 T.en.kind.autonomous = "Follow-up (automatic)";
 
-const p2 = { suggested: [], drafts: [], doctor: null, entries: [], persona: null, cards: [], outbox: [], helper: "Priya", speaker: false, fromVoice: false };
+const p2 = { suggested: [], drafts: [], doctor: null, entries: [], persona: null, cards: [], outbox: [], helper: "Priya", helperUser: "helper", helperPass: "", speaker: false, fromVoice: false };
+const helperSignedIn = () => typeof acct !== "undefined" && acct.user && acct.user.role === "helper";
 const L = (o, k) => (state.lang === "ta" ? o[k + "_ta"] ?? o.ta : o[k + "_en"] ?? o.en);
 
 async function apiGet(path) {
@@ -162,25 +165,37 @@ async function draftLetter(s) {
 function renderHelper() {
   const box = $("#panel-helper");
   const items = p2.drafts;
-  box.innerHTML = `<p class="muted small">${esc(t("helperIntro"))}</p>
-    <label class="small">${esc(t("helperName"))} <input id="helperName" class="inline-input" value="${esc(p2.helper)}"></label>` +
+  const signin = helperSignedIn()
+    ? `<p class="small"><strong>${esc(t("helperAs"))}</strong> ${esc(acct.user.name || "Helper")}</p>`
+    : `<div class="helper-signin"><div class="small"><strong>${esc(t("helperSignin"))}</strong> ${esc(t("helperSigninNote"))}</div>
+        <label class="small">${esc(t("helperUser"))} <input id="helperUser" class="inline-input" value="${esc(p2.helperUser)}" autocomplete="off"></label>
+        <label class="small">${esc(t("helperPass"))} <input id="helperPass" type="password" class="inline-input" value="${esc(p2.helperPass)}" autocomplete="off"></label></div>`;
+  box.innerHTML = `<p class="muted small">${esc(t("helperIntro"))}</p>${signin}` +
     (items.length ? `<ul class="p2-list">` + items.map((d) => `<li class="row"><span><strong>${esc(L(d, "title"))}</strong>${d.member_name ? " · " + esc(d.member_name) : ""}
       <span class="status ${stClass(d.status)}">${esc(stText(d.status))}</span><div class="muted small">${esc(L(d, "reason"))}</div>
       ${d.approved_by ? `<div class="small">${esc(d.approved_by)}</div>` : ""}</span>
       <span class="row-btns">${d.html_url ? `<a class="btn btn-outline btn-sm" href="${esc(d.html_url)}" target="_blank" rel="noopener">${esc(t("open"))}</a>` : ""}
       ${d.status === "DRAFT" || d.status === "OPEN" ? `<button class="btn btn-primary btn-sm" data-approve="${esc(d.draft_id)}">${esc(d.kind === "escalation" ? t("reviewed") : t("approve"))}</button>` : ""}</span></li>`).join("") + "</ul>"
       : `<p class="muted">${esc(t("noQueue"))}</p>`);
-  $("#helperName").onchange = (e) => { p2.helper = e.target.value.trim() || "Helper"; };
+  if ($("#helperUser")) $("#helperUser").onchange = (e) => { p2.helperUser = e.target.value.trim(); };
+  if ($("#helperPass")) $("#helperPass").onchange = (e) => { p2.helperPass = e.target.value; };
   box.querySelectorAll("[data-approve]").forEach((b) => b.onclick = () => approve(b.dataset.approve));
 }
 
 async function approve(draft_id) {
+  const body = { draft_id };
+  if (!helperSignedIn()) {
+    body.username = ($("#helperUser")?.value || p2.helperUser || "").trim();
+    body.password = $("#helperPass")?.value || p2.helperPass || "";
+    if (!body.password) { toast(t("helperNeed")); $("#helperPass")?.focus(); return; }
+    p2.helperUser = body.username; p2.helperPass = body.password;
+  }
   try {
-    const r = await api("/api/helper/approve", { draft_id, helper_name: p2.helper });
+    const r = await api("/api/helper/approve", body);
     enqueue(r.events || []);
     p2.drafts = (await apiGet(`/api/helper/queue?session_id=${state.sid}`)).items;
     renderLetters(); renderHelper();
-  } catch (e) { toast(`${t("warn")} ${e.message}`); }
+  } catch (e) { p2.helperPass = ""; renderHelper(); toast(`${t("warn")} ${e.message}`); }
 }
 
 // ---------------------------------------------------------------- Follow
@@ -192,7 +207,7 @@ function renderFollow() {
     <button class="btn btn-outline btn-sm" id="fSum">${esc(t("sendSummary"))}</button>
     <button class="btn btn-outline btn-sm" id="fWa">${esc(t("shareWa"))}</button></div>
     <h3 class="p2-h">${esc(t("outbox"))}</h3><p class="muted small">${esc(t("outboxNote"))}</p>` +
-    (p2.outbox.length ? `<ul class="p2-list">` + p2.outbox.map((m) => `<li><div class="sms">${esc(m.text)}</div><div class="muted small">${esc(m.reason)} · ${esc(m.created || "")}</div></li>`).join("") + "</ul>"
+    (p2.outbox.length ? `<ul class="p2-list">` + p2.outbox.map((m) => `<li><div class="sms">${esc(m.text)}</div><div class="muted small">${esc(m.to || "")} · ${esc(m.status || "")} · ${esc(m.reason)} · ${esc(m.created || "")}</div></li>`).join("") + "</ul>"
       : `<p class="muted">${esc(t("noOutbox"))}</p>`);
   $("#fSim").onclick = followSimulate;
   $("#fSum").onclick = followSummary;
@@ -242,8 +257,10 @@ async function toggleMic() {
         const r = await fetch("/api/stt", { method: "POST", body: fd });
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
         const j = await r.json();
-        $("#chatInput").value = j.text; $("#chatInput").focus(); p2.fromVoice = true;
-        toast(t("heard"));
+        const box = $("#chatInput");
+        box.value = j.text; box.focus(); box.setSelectionRange(0, 0); box.scrollLeft = 0; box.title = j.text;
+        p2.fromVoice = true;
+        toast(`${t("heard")}: "${j.text}"`);
       } catch (e) { toast(`${t("warn")} ${e.message}`); }
     };
     rec.start(); btn.classList.add("rec"); btn.textContent = t("recording");

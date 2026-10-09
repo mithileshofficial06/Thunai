@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 import agent
 import store
+from engine import recompute
 
 router = APIRouter()
 store.init()
@@ -41,6 +42,16 @@ def current_user(authorization: Optional[str] = Header(None)):
     user = store.user_for(_token(authorization))
     if user is None:
         raise HTTPException(401, "please log in")
+    return user
+
+
+def helper_user(authorization: Optional[str] = Header(None)):
+    """Dependency for helper-only routes: 401 without a valid token, 403 for a family account."""
+    user = store.user_for(_token(authorization))
+    if user is None:
+        raise HTTPException(401, "please log in as a helper")
+    if user.get("role") != "helper":
+        raise HTTPException(403, "helper sign-in required")
     return user
 
 
@@ -92,9 +103,13 @@ def save(body: SaveIn, user=Depends(current_user)):
     if s is None:
         raise HTTPException(404, "session not found")
     events = (body.events or [])[-200:]
+    # what the family qualifies for right now: the new-scheme re-match compares against this
+    # Recomputed with the CURRENT rules (not the session's possibly older snapshot), so a scheme added
+    # after this session started is recorded too and the re-match never alerts the same family twice.
+    eligible = [v["key"] for v in recompute(s["facts"])["verdicts"] if v["status"] == "ELIGIBLE"]
     try:
         chat = store.save_chat(user["id"], s["id"], _title(s["facts"]), s["facts"], events,
-                               s["snapshot"].get("rupees_per_year", 0))
+                               s["snapshot"].get("rupees_per_year", 0), eligible=eligible)
     except PermissionError:
         raise HTTPException(404, "session not found")
     return {"chat": chat}
@@ -110,7 +125,9 @@ def reopen(chat_id: str, user=Depends(current_user)):
     chat = store.get_chat(user["id"], chat_id)
     if chat is None:
         raise HTTPException(404, "conversation not found")
-    session, events = agent.new_session(chat["facts"])
+    # same id as the saved chat, so later autosaves update this conversation instead of adding a copy
+    session, events = agent.new_session(chat["facts"], sid=chat_id)
     return {"session_id": session["id"], "events": chat["events"] + events, "snapshot": session["snapshot"],
             "unconfirmed": [], "pending_ask": [], "doctor": None,
-            "suggested_letters": agent.letter_suggestions(session), "drafts": [], "title": chat["title"]}
+            "suggested_letters": agent.letter_suggestions(session), "drafts": agent.helper_queue(chat_id),
+            "title": chat["title"]}

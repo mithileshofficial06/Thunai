@@ -42,5 +42,11 @@ STT_MODEL = "whisper-large-v3"
 TTS_VOICE_TA = "ta-IN-PallaviNeural"
 TTS_VOICE_EN = "en-IN-NeerjaNeural"
 
+# SMS: outbox only unless a provider is configured (SMS_PROVIDER=twilio + the three Twilio settings).
+SMS_PROVIDER = _env("SMS_PROVIDER").strip().lower() or None
+TWILIO_ACCOUNT_SID = _env("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = _env("TWILIO_AUTH_TOKEN")
+TWILIO_FROM = _env("TWILIO_FROM")
+
 # Set USE_LLM=0 to run fully offline (scripted questions + direct persona loading).
 USE_LLM = os.environ.get("USE_LLM", "1") != "0"
