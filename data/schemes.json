@@ -181,7 +181,7 @@
         { "id": "gst", "field": "family.gst_turnover_over_50_lakh", "op": "==", "value": true, "text_en": "Business owner paying GST with turnover above ₹50 lakh", "text_ta": "₹50 லட்சத்திற்கு மேல் விற்பனையுடன் GST செலுத்தும் தொழில் உரிமையாளர்" },
         { "id": "ss_pension", "field": "family.receives_social_security_pension", "op": "==", "value": true, "text_en": "Family already receives old-age, widow, welfare-board or government pension", "text_ta": "குடும்பம் ஏற்கனவே முதியோர் / விதவை / நலவாரிய / அரசு ஓய்வூதியம் பெறுகிறது" }
       ],
-      "conflicts_with": ["destitute_widow_pension", "old_age_pension"],
+      "conflicts_with": ["destitute_widow_pension", "old_age_pension", "deserted_women_pension", "unmarried_women_pension"],
       "conflict_note": {
         "en": "Families receiving a social security pension cannot also receive Magalir Urimai. If both are possible, the family must choose one.",
         "ta": "சமூகப் பாதுகாப்பு ஓய்வூதியம் பெறும் குடும்பம் மகளிர் உரிமைத் தொகையும் பெற இயலாது. இரண்டுக்கும் தகுதி இருந்தால் ஒன்றைத் தேர்வு செய்ய வேண்டும்."
@@ -307,11 +307,128 @@
     },
 
     {
-      "id": "tamil_pudhalvan", "name_en": "Tamil Pudhalvan", "name_ta": "தமிழ்ப் புதல்வன்",
-      "level": "state", "priority": "stretch", "enabled": false, "scope": "member",
-      "benefit": { "amount_per_year": 12000, "display_en": "₹1,000 a month (reported)", "display_ta": "மாதம் ₹1,000 (செய்திகளின்படி)", "verification": "unverified" },
-      "eligibility": [], "exclusions": [],
-      "verification": { "status": "unverified", "checked_on": "2026-10-09", "notes": "Boys' counterpart of Pudhumai Penn (reported). Disabled until verified." }
+      "id": "deserted_women_pension",
+      "name_en": "Destitute / Deserted Women Pension (Tamil Nadu Social Security)",
+      "name_ta": "ஆதரவற்ற / கணவனால் கைவிடப்பட்ட பெண்கள் ஓய்வூதியத் திட்டம்",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "exclusive_group": "social_security_pension",
+      "beneficiary_member_filter": [
+        { "field": "member.gender", "op": "==", "value": "female" },
+        { "field": "member.marital_status", "op": "in", "value": ["deserted", "divorced"] }
+      ],
+      "benefit": { "amount_per_year": 14400, "display_en": "₹1,200 a month", "display_ta": "மாதம் ₹1,200", "verification": "official" },
+      "eligibility": [
+        { "id": "divorced_or_deserted", "field": "member.marital_status", "op": "in", "value": ["deserted", "divorced"],
+          "text_en": "Legally divorced, or deserted by her husband for at least 5 years, or holds a court legal-separation certificate",
+          "text_ta": "சட்டப்பூர்வமாக விவாகரத்து பெற்றவர், அல்லது குறைந்தது 5 ஆண்டுகள் கணவனால் கைவிடப்பட்டவர், அல்லது நீதிமன்றத்தின் சட்டப்பூர்வ பிரிவு சான்றிதழ் பெற்றவர்" },
+        { "id": "age_30", "field": "member.age", "op": ">=", "value": 30, "text_en": "Aged 30 or above", "text_ta": "30 வயது அல்லது அதற்கு மேல்" },
+        { "id": "destitute", "field": "member.is_destitute", "op": "==", "value": true, "text_en": "Destitute (no family support) — final assessment by Revenue officials", "text_ta": "ஆதரவற்றவர் — இறுதி மதிப்பீடு வருவாய்த் துறை அலுவலர்களால்" },
+        { "id": "property", "field": "member.immovable_property_value", "op": "<=", "value": 100000, "text_en": "Immovable property worth ₹1,00,000 or less (a free government house is not counted)", "text_ta": "அசையா சொத்து ₹1,00,000க்கு மிகாமல் (அரசு வழங்கிய இலவச வீடு கணக்கில் இல்லை)" }
+      ],
+      "need_info_flags": [
+        { "id": "deserted_5_years", "field": "member.marital_status", "op": "==", "value": "deserted",
+          "text_en": "A deserted wife qualifies only after at least 5 years of desertion, or with a court legal-separation certificate — we cannot check this; confirm at the Taluk office / e-Sevai",
+          "text_ta": "கணவனால் கைவிடப்பட்டு குறைந்தது 5 ஆண்டுகள் ஆகியிருக்க வேண்டும், அல்லது நீதிமன்ற சட்டப்பூர்வ பிரிவு சான்றிதழ் வேண்டும் — இதை எங்களால் சரிபார்க்க இயலாது; வட்ட அலுவலகம் / இ-சேவையில் உறுதிசெய்யவும்" }
+      ],
+      "exclusions": [],
+      "required_documents": ["aadhaar", "bank_account_aadhaar_seeded"],
+      "required_documents_note": "Aadhaar and an Aadhaar-linked bank account are needed for DBT payment (CRA: pensions credited through banks since Sept 2024). The CRA pages give no document list; proof of divorce / desertion / court separation will likely be asked — confirm the full list at e-Sevai.",
+      "name_check_documents": ["aadhaar", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "how_to_apply_en": "Apply online at tnesevai.tn.gov.in or through an e-Sevai centre. Revenue officials verify and decide within 30 days; the Special Tahsildar (Social Security Scheme) sanctions the pension.",
+      "how_to_apply_ta": "tnesevai.tn.gov.in இணையதளம் அல்லது இ-சேவை மையம் வழியாக விண்ணப்பிக்கவும். வருவாய்த் துறை சரிபார்த்து 30 நாட்களுக்குள் முடிவு; தனி வட்டாட்சியர் (சமூகப் பாதுகாப்புத் திட்டம்) ஓய்வூதியம் வழங்க ஆணையிடுவார்.",
+      "grievance": {
+        "en": "Petition the Special Tahsildar (Social Security Scheme) at the Taluk office with the rejection reason and proof, or at the District Collectorate's people's grievance day.",
+        "ta": "நிராகரிப்பு காரணம் மற்றும் ஆதாரத்துடன் வட்ட அலுவலக தனி வட்டாட்சியரிடம் (சமூகப் பாதுகாப்புத் திட்டம்) அல்லது மாவட்ட ஆட்சியர் அலுவலக மக்கள் குறைதீர்க்கும் நாளில் மனு அளிக்கவும்.",
+        "verification": "same mechanism as the destitute widow pension (CRA lists the Special Tahsildar for pensions); the exact office for a given district — confirm locally"
+      },
+      "official_sources": ["https://www.cra.tn.gov.in/about_schemes_t.php", "https://www.cra.tn.gov.in/eleg_schemes_t.php"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "CRA about_schemes_t.php, state scheme 4 'ஆதரவற்ற / கணவரால் கைவிடப்பட்ட பெண்களுக்கான ஓய்வூதியத் திட்டம்': 'ஆதரவற்றவராக இருத்தல் வேண்டும்.' / 'வயது – 30 மற்றும் அதற்கு மேல் இருத்தல் வேண்டும்.' / 'சட்ட பூர்வமாக விவாகரத்தோ அல்லது குறைந்த பட்சம் 5 ஆண்டுகள் கணவனால் கைவிடப்பட்டவராகவோ, அல்லது நீதிமன்றத்தின் மூலம் சட்டப்பூர்வ பிரிவு சான்றிதழ் பெற்றிருத்தல் வேண்டும்.' / 'அசையா சொத்து ரூ.1,00,000/-திற்கு மிகாமல் இருத்தல் வேண்டும்.' Free house not counted: eleg_schemes_t.php 'ஆனால், வழங்கப்பட்டுள்ள இலவச வீடுகளின் மதிப்பு கணக்கில் எடுத்துக்கொள்ளப்பட மாட்டாது.' Amount: funding table row 7 (state 1200/-, total 1200/-) and 'ஆகஸ்டு-2023 முதல் ரூ.1,200/-'. tnesevai application, 30-day decision, Special Tahsildar (SSS), DBT since Sept 2024 — same CRA page. The 5-year desertion rule needs a fact we do not collect → NEED_INFO flag for 'deserted'; 'divorced' is read as legally divorced." }
+    },
+
+    {
+      "id": "unmarried_women_pension",
+      "name_en": "Destitute Unmarried Women Pension, 50+ (Tamil Nadu Social Security)",
+      "name_ta": "50 வயதிற்கு மேற்பட்ட ஆதரவற்ற திருமணமாகாத ஏழைப் பெண்களுக்கான ஓய்வூதியத் திட்டம்",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "exclusive_group": "social_security_pension",
+      "beneficiary_member_filter": [
+        { "field": "member.gender", "op": "==", "value": "female" },
+        { "field": "member.marital_status", "op": "==", "value": "unmarried" },
+        { "field": "member.age", "op": ">=", "value": 50 }
+      ],
+      "benefit": { "amount_per_year": 14400, "display_en": "₹1,200 a month", "display_ta": "மாதம் ₹1,200", "verification": "official" },
+      "eligibility": [
+        { "id": "unmarried", "field": "member.marital_status", "op": "==", "value": "unmarried", "text_en": "Unmarried woman", "text_ta": "திருமணமாகாத பெண்" },
+        { "id": "age_50", "field": "member.age", "op": ">=", "value": 50, "text_en": "Aged 50 or above", "text_ta": "50 வயது அல்லது அதற்கு மேல்" },
+        { "id": "destitute", "field": "member.is_destitute", "op": "==", "value": true, "text_en": "Destitute (no family support) — final assessment by Revenue officials", "text_ta": "ஆதரவற்றவர் — இறுதி மதிப்பீடு வருவாய்த் துறை அலுவலர்களால்" },
+        { "id": "property", "field": "member.immovable_property_value", "op": "<=", "value": 100000, "text_en": "Immovable property worth ₹1,00,000 or less (a free government house is not counted)", "text_ta": "அசையா சொத்து ₹1,00,000க்கு மிகாமல் (அரசு வழங்கிய இலவச வீடு கணக்கில் இல்லை)" }
+      ],
+      "need_info_flags": [],
+      "exclusions": [],
+      "required_documents": ["aadhaar", "bank_account_aadhaar_seeded"],
+      "required_documents_note": "Aadhaar and an Aadhaar-linked bank account are needed for DBT payment (CRA: pensions credited through banks since Sept 2024). The CRA pages give no document list — confirm the full list at e-Sevai.",
+      "name_check_documents": ["aadhaar", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "how_to_apply_en": "Apply online at tnesevai.tn.gov.in or through an e-Sevai centre. Revenue officials verify and decide within 30 days; the Special Tahsildar (Social Security Scheme) sanctions the pension.",
+      "how_to_apply_ta": "tnesevai.tn.gov.in இணையதளம் அல்லது இ-சேவை மையம் வழியாக விண்ணப்பிக்கவும். வருவாய்த் துறை சரிபார்த்து 30 நாட்களுக்குள் முடிவு; தனி வட்டாட்சியர் (சமூகப் பாதுகாப்புத் திட்டம்) ஓய்வூதியம் வழங்க ஆணையிடுவார்.",
+      "grievance": {
+        "en": "Petition the Special Tahsildar (Social Security Scheme) at the Taluk office with the rejection reason and proof, or at the District Collectorate's people's grievance day.",
+        "ta": "நிராகரிப்பு காரணம் மற்றும் ஆதாரத்துடன் வட்ட அலுவலக தனி வட்டாட்சியரிடம் (சமூகப் பாதுகாப்புத் திட்டம்) அல்லது மாவட்ட ஆட்சியர் அலுவலக மக்கள் குறைதீர்க்கும் நாளில் மனு அளிக்கவும்.",
+        "verification": "same mechanism as the destitute widow pension (CRA lists the Special Tahsildar for pensions); the exact office for a given district — confirm locally"
+      },
+      "official_sources": ["https://www.cra.tn.gov.in/about_schemes_t.php", "https://www.cra.tn.gov.in/eleg_schemes_t.php"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "CRA about_schemes_t.php, state scheme 5 '50 வயதிற்கு மேற்பட்ட திருமணமாகாத ஏழைப்பெண்களுக்கான ஓய்வூதியத் திட்டம்': 'ஆதரவற்ற மற்றும் திருமணமாகாத பெண்ணாக இருத்தல் வேண்டும்.' / 'வயது – 50 மற்றும் அதற்கு மேல் இருத்தல் வேண்டும்.' / 'அசையா சொத்து ரூ.1,00,000/-திற்கு மிகாமல் இருத்தல் வேண்டும்.' Free house not counted: eleg_schemes_t.php 'ஆனால், வழங்கப்பட்டுள்ள இலவச வீடுகளின் மதிப்பு கணக்கில் எடுத்துக்கொள்ளப்பட மாட்டாது.' Amount: funding table row 8 (state 1200/-, total 1200/-) and 'ஆகஸ்டு-2023 முதல் ரூ.1,200/-'. tnesevai application, 30-day decision, Special Tahsildar (SSS), DBT since Sept 2024 — same CRA page." }
+    },
+
+    {
+      "id": "tamil_pudhalvan",
+      "name_en": "Tamil Pudhalvan",
+      "name_ta": "தமிழ்ப் புதல்வன்",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "beneficiary_member_filter": [
+        { "field": "member.gender", "op": "==", "value": "male" },
+        { "field": "member.current_education", "op": "in", "value": ["ug", "diploma", "iti", "professional_ug", "pg"] }
+      ],
+      "benefit": { "amount_per_year": 12000, "display_en": "₹1,000 a month by DBT until the first UG degree / diploma / ITI course is completed", "display_ta": "முதல் உயர்கல்விப் படிப்பு (இளநிலை பட்டம் / டிப்ளமோ / ஐடிஐ) முடியும் வரை மாதம் ₹1,000 (நேரடி வங்கிப் பரிமாற்றம்)", "verification": "official" },
+      "eligibility": [
+        { "id": "school", "field": "member.studied_class_6_to_12_in", "op": "in", "value": ["government", "government_aided", "rte_private_6_8_then_government_9_12"],
+          "text_en": "Studied Classes 6–12 in a Tamil Nadu government school (or a government-aided school in Tamil medium)", "text_ta": "6 முதல் 12ஆம் வகுப்பு வரை தமிழ்நாடு அரசுப் பள்ளியில் (அல்லது தமிழ் வழியில் அரசு உதவிபெறும் பள்ளியில்) படித்தவர்" },
+        { "id": "higher_ed", "field": "member.current_education", "op": "in", "value": ["ug", "diploma", "iti", "professional_ug"],
+          "text_en": "Now studying an undergraduate degree, diploma or ITI course at a recognised institution", "text_ta": "அங்கீகரிக்கப்பட்ட நிறுவனத்தில் இளநிலை பட்டம் / டிப்ளமோ / ஐடிஐ படிக்கிறார்" },
+        { "id": "first_course", "field": "member.is_first_higher_ed_course", "op": "==", "value": true,
+          "text_en": "This is his first higher-education course", "text_ta": "இது அவரது முதல் உயர்கல்விப் படிப்பு" }
+      ],
+      "need_info_flags": [
+        { "id": "aided_tamil_medium", "field": "member.studied_class_6_to_12_in", "op": "==", "value": "government_aided",
+          "text_en": "Government-aided schools count only if he studied in Tamil medium — confirm on the UMIS portal / with the college",
+          "text_ta": "அரசு உதவிபெறும் பள்ளியில் தமிழ் வழியில் படித்திருந்தால் மட்டுமே தகுதி — UMIS இணையதளம் / கல்லூரியில் உறுதிசெய்யவும்" },
+        { "id": "rte_route", "field": "member.studied_class_6_to_12_in", "op": "==", "value": "rte_private_6_8_then_government_9_12",
+          "text_en": "The RTE route (private school for Classes 6–8, then government school) is not mentioned on the department page — confirm on the UMIS portal",
+          "text_ta": "RTE வழி (6–8 தனியார் பள்ளி, பின்னர் அரசுப் பள்ளி) துறை இணையப்பக்கத்தில் குறிப்பிடப்படவில்லை — UMIS இணையதளத்தில் உறுதிசெய்யவும்" },
+        { "id": "distance_mode", "field": "member.education_mode", "op": "in", "value": ["distance", "open_university"],
+          "text_en": "Distance / open-university courses are reported as not eligible (the department page requires a recognised college) — confirm",
+          "text_ta": "தொலைதூர / திறந்தநிலை படிப்புகள் தகுதியற்றவை எனக் கூறப்படுகிறது (அங்கீகரிக்கப்பட்ட கல்லூரி அவசியம்) — உறுதிசெய்யவும்" }
+      ],
+      "exclusions": [],
+      "notes_en": ["The department page states no family income limit.", "Can be received along with other scholarships.", "Any number of boys in the same family can receive it."],
+      "notes_ta": ["துறை இணையப்பக்கத்தில் குடும்ப வருமான வரம்பு குறிப்பிடப்படவில்லை.", "பிற உதவித்தொகைகளுடன் சேர்த்துப் பெறலாம்.", "ஒரே குடும்பத்தில் எத்தனை மாணவர்களும் பெறலாம்."],
+      "required_documents": ["aadhaar", "school_records_6_to_12", "college_admission_proof", "student_bank_account_aadhaar_seeded"],
+      "required_documents_note": "The department page names the UMIS portal and an Aadhaar-seeded bank account; school and college records are our working list (same as Pudhumai Penn) — confirm the full list on UMIS / with the college.",
+      "name_check_documents": ["aadhaar", "school_records_6_to_12", "bank_passbook"],
+      "where_to_apply": "online",
+      "how_to_apply_en": "The student applies himself on the UMIS portal. The college certifies his bonafide status twice a year (30 June and 31 December). If he has no bank account, the higher education department helps open a zero-balance, Aadhaar-seeded account.",
+      "how_to_apply_ta": "மாணவர் 'UMIS' இணையதளத்தில் தானே விண்ணப்பிக்கலாம். ஆண்டுக்கு இருமுறை (ஜூன் 30, டிசம்பர் 31) கல்லூரி படிப்புச் சான்று அளிக்கும். வங்கிக் கணக்கு இல்லையெனில் உயர்கல்வித் துறை உதவியுடன் ஆதார் இணைக்கப்பட்ட பூஜ்ய இருப்புக் கணக்கு தொடங்கலாம்.",
+      "check_status": { "en": "UMIS portal or the college scholarship desk", "ta": "UMIS இணையதளம் அல்லது கல்லூரி உதவித்தொகை பிரிவு", "url": null },
+      "official_sources": ["https://www.tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/tamil-pudhalvan", "https://tnsocialwelfare.tn.gov.in/ta/node/6710", "https://dte.tn.gov.in/tamil-pudhalvan"],
+      "secondary_sources": ["https://www.tribuneindia.com/news/india/tamil-nadu-cm-launches-rs-1000-monthly-assistance-scheme-for-boys", "https://www.etvbharat.com/en/!state/cm-mk-stalin-launches-tamil-pudhalvan-enn24080903156"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "TN Social Welfare & Women Empowerment Dept page (English + Tamil node/6710): 'All boy students who studied from Classes 6 to 12 in Government schools and Government aided schools in tamil medium will be paid Rs.1,000/- per month directly into their bank account till the uninterrupted completion of their undergraduate degree, diploma and ITI courses. The students shall be eligible for this in addition to other scholarships'; 'Cash incentive of Rs.1000/month per beneficiary as DBT will be sanctioned till the competition of their first higher education'; 'any number of boy students in a family'; 'online portal UMIS wherein the boy students themselves can apply'; certify bonafide status on 30 June and 31 December; 'only first course of higher education will be considered'; launched 09.08.2024 (announced in the 19 Feb 2024 budget). Tamil: 'அரசுப் பள்ளிகள் மற்றும் அரசு உதவி பெறும் பள்ளிகளில் (தமிழ் வழியில்) 6 முதல் 12 ஆம் வகுப்பு வரை படித்த அனைத்து மாணவர்களுக்கும் ... மாதந்தோறும் ரூ.1,000/-'. We read '(Tamil medium)' as qualifying the aided-school route (the Pudhumai Penn page has government schools with no medium rule) → aided = NEED_INFO flag. Engineering/polytechnic (professional UG) students benefit per dte.tn.gov.in/tamil-pudhalvan. RTE route and distance-mode exclusion are not on the official pages → NEED_INFO flags." }
     },
 
     {

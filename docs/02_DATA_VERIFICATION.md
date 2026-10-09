@@ -31,7 +31,10 @@
 | **Pudhumai Penn** | ✅ Official | TN Social Welfare Dept scheme page | Govt school Classes 6–12; ₹1,000/month DBT until first UG / diploma / ITI is completed; with other scholarships; any number of girls per family; **student applies herself on the Penkalvi portal**; college certifies status every 6 months; zero-balance accounts (Indian Bank, Canara, IOB, SBI). *Aided / RTE route and distance-mode exclusion: news / secondary → shown as NEED_INFO* |
 | **Destitute Widow Pension** | ✅ Official | cra.tn.gov.in (Tamil) | Destitute widow 18+; property ≤ ₹1 lakh (free govt house not counted); ₹1,200/month since Aug 2023; tnesevai; decided in 30 days; Special Tahsildar (SSS); DBT since Sept 2024 |
 | **Old Age Pension (IGNOAPS)** | ✅ Official | cra.tn.gov.in | Destitute, BPL, 60+; ₹1,200 (central 200 + state 1,000 for ages 60–79; 500 + 700 for 80+) |
-| Tamil Pudhalvan, CMCHIS | ❌ Disabled | — | Not verified → `enabled: false` |
+| **Tamil Pudhalvan** (added after Eval 1) | ✅ Official | tnsocialwelfare.tn.gov.in Tamil Pudhalvan page (EN + TA) | Boys, Classes 6–12 in govt / govt-aided (Tamil medium) schools; ₹1,000/month DBT until the first UG / diploma / ITI is completed; with other scholarships; apply on UMIS. *Aided-school medium, RTE route and distance mode → NEED_INFO* |
+| **Destitute / Deserted Women Pension** (added) | ✅ Official | cra.tn.gov.in (Tamil) | Destitute; 30+; legally divorced, or deserted for at least 5 years, or court separation; property ≤ ₹1 lakh (free house not counted); ₹1,200/month. *"5 years deserted" is not a fact we ask → NEED_INFO "confirm at the office"* |
+| **Unmarried Women Pension** (added) | ✅ Official | cra.tn.gov.in (Tamil) | Destitute unmarried women aged 50+; property ≤ ₹1 lakh; ₹1,200/month |
+| CMCHIS | ❌ Disabled | — | Not verified → `enabled: false` |
 
 **Labelled approximations (shown in the UI):** ration-card type (PHH / AAY) as the BPL indicator; "destitute" = final assessment by Revenue officials; mixed wet + dry land → NEED_INFO; pension grievance office → "confirm locally".
 

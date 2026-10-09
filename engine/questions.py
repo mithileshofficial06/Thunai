@@ -18,6 +18,15 @@ def _q(qid, member=None, doc_list=None):
     return {"id": qid, "en": en, "ta": ta, "member_id": member["id"] if member else None}
 
 
+def _support_question_applies(m):
+    """Pensions that need 'destitute' + property: widows, elders 60+, deserted / divorced women 30+,
+    unmarried women 50+ (TN social security pensions)."""
+    age, status, female = m.get("age") or 0, m.get("marital_status"), m.get("gender") == "female"
+    return (status == "widowed" or age >= 60
+            or (female and status in ("deserted", "divorced") and age >= 30)
+            or (female and status == "unmarried" and age >= 50))
+
+
 def next_question(derived, verdicts):
     fam, members = derived["family"], derived["members"]
     relevant = [v for v in verdicts if v["status"] in ("ELIGIBLE", "NEED_INFO")]
@@ -40,11 +49,11 @@ def next_question(derived, verdicts):
         return _q("exclusion_sweep")
     if any(m.get("is_kmut_head_of_family") for m in members) and fam.get("electricity_units_per_year") is None:
         return _q("electricity")
-    for m in members:
-        if m.get("gender") == "female" and 16 <= (m.get("age") or 0) <= 30 and m.get("current_education") is None:
+    for m in members:  # daughters (Pudhumai Penn) and sons (Tamil Pudhalvan) of college age
+        if m.get("gender") in ("female", "male") and 16 <= (m.get("age") or 0) <= 30 and m.get("current_education") is None:
             return _q("studies", m)
     for m in members:
-        if (m.get("marital_status") == "widowed" or (m.get("age") or 0) >= 60) and m.get("is_destitute") is None:
+        if _support_question_applies(m) and m.get("is_destitute") is None:
             return _q("widow_destitute", m)
 
     by_id = {m["id"]: m for m in members}

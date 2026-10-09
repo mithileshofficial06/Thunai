@@ -93,15 +93,15 @@
       "type": "number"
     },
     "studies": {
-      "only_if": "any female member aged 16–30",
-      "en": "Is {name} studying in college, diploma or ITI now? Is it her first course, regular (not distance), and did she study Classes 6 to 12 in a government school?",
+      "only_if": "any member aged 16–30 (daughters: Pudhumai Penn; sons: Tamil Pudhalvan)",
+      "en": "Is {name} studying in college, diploma or ITI now? Is it the first course, regular (not distance), and were Classes 6 to 12 studied in a government school?",
       "ta": "{name} இப்போது கல்லூரி / டிப்ளமோ / ஐடிஐ படிக்கிறாரா? இது அவரது முதல் படிப்பா, நேரடி வகுப்பா (தொலைதூரம் அல்ல)? 6 முதல் 12ஆம் வகுப்பு வரை அரசுப் பள்ளியில் படித்தாரா?",
       "sets": ["member.current_education", "member.is_first_higher_ed_course", "member.education_mode", "member.studied_class_6_to_12_in"],
       "type": "free_text",
       "extract_note": "If not studying: current_education='none'. Members not asked default to 'none'."
     },
     "widow_destitute": {
-      "only_if": "any member widowed, or aged 60+",
+      "only_if": "any member widowed or aged 60+, a deserted / divorced woman aged 30+, or an unmarried woman aged 50+",
       "en": "Does {name} have children or relatives who support her/him? Roughly what is the value of any land or house she/he owns (a free government house doesn't count)?",
       "ta": "{name} அவர்களை ஆதரிக்கும் பிள்ளைகள் அல்லது உறவினர் உள்ளனரா? அவர் பெயரில் உள்ள நிலம் / வீட்டின் மதிப்பு சுமார் எவ்வளவு (அரசு வழங்கிய இலவச வீடு கணக்கில் இல்லை)?",
       "sets": ["member.is_destitute", "member.immovable_property_value"],

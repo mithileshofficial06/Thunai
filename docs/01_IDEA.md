@@ -177,7 +177,7 @@ The **agent activity log** shows each step live, labelled Goal / Plan / Action /
 ### 8.3 Stretch
 | ID | Requirement | Status |
 |---|---|---|
-| **S1** | 3–4 more **officially verified** schemes (otherwise they stay disabled) | see §10 |
+| **S1** | More **officially verified** schemes (otherwise they stay disabled) | ✅ 3 added, 8 schemes enabled (see §10) |
 | **S2** | Source check: changed official page leads to "needs review" (helper only) | ✅ built |
 
 ### 8.4 Non-functional
@@ -221,7 +221,10 @@ The **agent activity log** shows each step live, labelled Goal / Plan / Action /
 | Pudhumai Penn | TN | Govt-school girls in their first UG / diploma / ITI | ✅ official |
 | Destitute Widow Pension | TN | Destitute widows 18+ | ✅ official |
 | Old Age Pension (IGNOAPS + state) | Central + TN | Destitute BPL elders 60+ | ✅ official |
-| Tamil Pudhalvan, differently-abled assistance, unmarried / deserted women pension, PMMVY | — | — | **S1**: enabled only if officially verified on 9 Oct |
+| **Tamil Pudhalvan** (added) | TN | Boys who studied Classes 6–12 in govt / govt-aided (Tamil medium) schools, now in their first UG / diploma / ITI; ₹1,000/month | ✅ official (TN Social Welfare Dept page) |
+| **Destitute / Deserted Women Pension** (added) | TN | Destitute women 30+, legally divorced or deserted 5+ years; property ≤ ₹1 lakh; ₹1,200/month | ✅ official (cra.tn.gov.in) · "deserted 5+ years" shown as confirm-at-office |
+| **Unmarried Women Pension** (added) | TN | Destitute unmarried women 50+; property ≤ ₹1 lakh; ₹1,200/month | ✅ official (cra.tn.gov.in) |
+| Differently-abled assistance, PMMVY | — | — | Not added: they need new questions (disability, pregnancy) |
 | CMCHIS | TN | — | Disabled |
 
 ---
