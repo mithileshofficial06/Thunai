@@ -156,14 +156,16 @@ def _add_doctor_task(session, snap):
 # --------------------------------------------------------------- the Doctor
 def doctor_start(session, entry_id):
     step = doctor_engine.start(entry_id)
-    session["doctor"] = {"entry_id": entry_id, "tree": step["tree"], "path": step["path"], "step": step}
+    session["doctor"] = {"entry_id": entry_id, "tree": step["tree"], "path": step["path"], "step": step, "unsure": False}
     return [ev("tool", "", f"Started problem finder: {entry_id}", f"சிக்கல் கண்டறிதல் தொடங்கியது: {entry_id}")]
 
 
 def doctor_answer(session, reply, replan=True):
     """Advance the Doctor; on an outcome, add its fix to the plan, suggest its letter, escalate if needed."""
     d = session["doctor"]
-    step = doctor_engine.answer(d["tree"], d["path"], reply)
+    # A "don't know" anywhere on the path means the outcome starts with "check in 1 minute" (tree rule).
+    d["unsure"] = d.get("unsure", False) or reply == "dont_know"
+    step = doctor_engine.answer(d["tree"], d["path"], reply, unsure=d["unsure"])
     d.update(path=step["path"], step=step)
     events = [ev("tool", "", f"Problem finder answer: {reply} → {step['node_id']}",
                  f"சிக்கல் கண்டறிதல் பதில்: {reply} → {step['node_id']}")]

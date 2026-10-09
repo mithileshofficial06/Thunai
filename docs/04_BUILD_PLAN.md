@@ -110,7 +110,18 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 
 ## 4a. Phase 2 final scope (v5): what to build, part by part
 
-**Progress (9 Oct):** **P1, P2 and P3 are done** (commit `fc363a5`, 52 tests pass). Next: P4.
+**Progress (9 Oct, final):**
+- **P1–P7 and P9 are done, with all UI parts U1–U8.**
+- Additions:
+  - a sign-in page first, with guest mode;
+  - only a signed-in helper can approve;
+  - logins survive a server restart;
+  - SMS delivery through a provider when configured (outbox by default);
+  - new-scheme re-match for saved families;
+  - the chat always replies;
+  - voice tested end to end in Chrome.
+- P8 (more schemes) is limited to officially verified schemes only (see `01_IDEA.md` §10).
+- Checked by the automated test suite and a 27-step browser check.
 **Mapping to `01_IDEA.md` v2:** P1–P3 = H4/H5 · P4 = H6 · P5 = F1 · P6 = F2 · P7 = F3 · P8 = S1 · P9 = S2.
 
 **Changes since v4:**

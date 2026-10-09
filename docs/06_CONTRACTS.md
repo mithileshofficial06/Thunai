@@ -36,8 +36,8 @@
 | `POST /api/sms/summary` | `{"session_id", "lang"}` (+ family login token → sent to that number) | `{"events", "message": OutboxMessage}` |
 | `GET /api/outbox` | `?session_id=` optional | `{"messages": [OutboxMessage]}` |
 | `POST /api/simulate` | `{"session_id", "days": 15}` | `Out` (events of type `autonomous`) |
-| `POST /api/rematch` | — | `{"events", "messages": [OutboxMessage]}` |
-| `GET /api/admin/check_sources` (stretch, helper) | — | `{"results": [{scheme_id, status: "unchanged"\|"changed"\|"unreachable", url, checked_at}]}` |
+| `POST /api/admin/rematch` (helper token) | — | `{"checked", "baselined", "alerted", "schemes_enabled", "results": [{chat_id, title, new: [{key, name_en, name_ta, member_name, benefit_en, benefit_ta}]}], "messages": [OutboxMessage], "events"}` · 401 / 403 if not a helper |
+| `GET /api/admin/check_sources` (helper token) | — | `{"results": [{scheme_id, name_en, url, status: "baseline"\|"unchanged"\|"changed"\|"unreachable", checked_at, stale, checked_on}], "note_en", "note_ta"}` · 401 / 403 if not a helper |
 
 ## 2. Event: one line in the activity log
 ```json

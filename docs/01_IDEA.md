@@ -163,22 +163,22 @@ The **agent activity log** shows each step live, labelled Goal / Plan / Action /
 | **H1** | Consent + Tamil/English chat → live family card → correction leads to re-plan; demo buttons | Eval 1 | ✅ built |
 | **H2** | Rules engine → scheme results (rule + source + checked date) → ₹ per year | Eval 1 | ✅ built |
 | **H3** | Agent activity log: goal, plan, actions, re-plan | Eval 1 | ✅ built |
-| **H4** | Missing documents + name check + fix plan by office with Done tracking + office visits saved + **Revathi** | Eval 2 | backend ✅ · UI in B5 |
-| **H5** | Application pack + 5 letters + **helper approval** + print; **Doctor** wired to plan and letters | Eval 2 | backend ✅ · UI in B5 |
-| **H6** | **Voice:** speak Tamil (Whisper) and replies spoken (edge-tts) | Eval 2 | B4a P4 |
+| **H4** | Missing documents + name check + fix plan by office with Done tracking + office visits saved + **Revathi** | Eval 2 | ✅ built |
+| **H5** | Application pack + 5 letters + **helper approval** (helper sign-in required) + print; **Doctor** wired to plan and letters | Eval 2 | ✅ built |
+| **H6** | **Voice:** speak Tamil (Whisper) and replies spoken (edge-tts) | Eval 2 | ✅ built · tested end to end in Chrome |
 
 ### 8.2 Should build (Follow), in this order
-| ID | Requirement |
-|---|---|
-| **F1** | Login (phone + PIN, helper login), chat history, delete my data; guest mode for demos |
-| **F2** | SMS outbox + summary SMS + WhatsApp share |
-| **F3** | "15 days later" follow-up (reminders, deadline warning, escalation) + new-scheme re-match |
+| ID | Requirement | Status |
+|---|---|---|
+| **F1** | Sign-in page first: login (phone + PIN, helper login), chat history (reopen without duplicates), delete my data; guest mode for demos; logins survive a server restart | ✅ built |
+| **F2** | SMS outbox + summary SMS + WhatsApp share; real sending when an SMS provider is configured (Twilio settings), otherwise outbox | ✅ built (real delivery needs an SMS account) |
+| **F3** | "15 days later" follow-up (reminders, deadline warning, escalation) + new-scheme re-match for saved families (helper) | ✅ built |
 
 ### 8.3 Stretch
-| ID | Requirement |
-|---|---|
-| **S1** | 3–4 more **officially verified** schemes (otherwise they stay disabled) |
-| **S2** | Source check: changed official page leads to "needs review" |
+| ID | Requirement | Status |
+|---|---|---|
+| **S1** | 3–4 more **officially verified** schemes (otherwise they stay disabled) | see §10 |
+| **S2** | Source check: changed official page leads to "needs review" (helper only) | ✅ built |
 
 ### 8.4 Non-functional
 | ID | Requirement |
@@ -195,8 +195,8 @@ The **agent activity log** shows each step live, labelled Goal / Plan / Action /
 - Submitting to government portals
 - Reading government databases
 - Document uploads or OCR
-- Real SMS sending (outbox only)
-- Real OTP login
+- Real SMS delivery without an SMS provider account (the code is ready; the prototype uses the outbox)
+- Real OTP login (we use a PIN on purpose)
 - Unverified schemes
 
 ---

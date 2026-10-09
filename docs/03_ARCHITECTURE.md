@@ -92,7 +92,7 @@ All six are met by H1–H6; F1–F3 strengthen "tracks pending actions".
 | Letters / pack | `templates/letter.html` + `engine/letters.py` → browser **Print / Save as PDF** | No PDF library; deterministic text, so names and numbers are exact | ✅ |
 | Storage | Server memory (guest) + **SQLite** via Python's built-in `sqlite3` (`thunai.db`, gitignored) | No install, no server; users, chats, outbox | — |
 | PIN hashing | `hashlib.pbkdf2_hmac` + random salt (standard library) | PIN never stored in plain text | — |
-| SMS | **Outbox only** (`config.SMS_PROVIDER = None`) + `wa.me` share link | Real SMS needs money + DLT registration | — |
+| SMS | `sms.py`: Twilio REST when `SMS_PROVIDER=twilio` + its settings are set; otherwise **outbox** (default) + `wa.me` share link | Real SMS needs an SMS account (money / DLT); the code path is tested against a simulated service | ✅ |
 | Tests | **pytest** | Clear pass/fail for engine, API, accuracy and modules | ✅ 9.1 |
 | Version control | **git** | Checkpoint commits, instant rollback | ✅ 2.55 |
 | Dev | VS Code + **Claude Code**; Chrome DevTools device mode (phone view) | Build + mobile testing | ✅ Chrome installed |
@@ -125,7 +125,10 @@ scheme-sathi/
 ├── agent.py            # handle(): perceive → decide → act → recompute → diff → reply; events
 ├── pii_guard.py        # removes Aadhaar-like / account-like numbers before any AI call
 ├── voice.py            # /api/stt (Groq Whisper) + /api/tts (edge-tts, MP3 cache in tts_cache/)
-├── store.py            # SQLite: users (phone, PIN hash, role), chats, outbox; delete my data
+├── store.py            # SQLite: users (phone, PIN hash, role), chats (+ eligible schemes), tokens, outbox; delete my data
+├── sms.py              # SMS delivery: provider (Twilio REST) when configured, else outbox; always recorded
+├── routes_auth.py      # sign-in, register, history (reopen keeps the same conversation), helper check
+├── routes_admin.py     # helper-only: official source check, new-scheme re-match of saved families
 ├── amounts.py          # deterministic Tamil/English number parser (cross-check for the AI)
 ├── accuracy.py         # two-model agreement, evidence check, range checks → accepted / ask
 ├── engine/
