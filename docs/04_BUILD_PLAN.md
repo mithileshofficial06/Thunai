@@ -110,6 +110,9 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 
 ## 4a. Phase 2 final scope (v5): what to build, part by part
 
+**Progress (9 Oct):** **P1, P2 and P3 are done** (commit `fc363a5`, 52 tests pass). Next: P4.
+**Mapping to `01_IDEA.md` v2:** P1–P3 = H4/H5 · P4 = H6 · P5 = F1 · P6 = F2 · P7 = F3 · P8 = S1 · P9 = S2.
+
 **Changes since v4:**
 - UiPath robot dropped. Thunai **prepares** the application; the family or helper **submits** it on the official site.
 - UI is the government-portal style, with no emojis.
@@ -134,9 +137,9 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 
 | # | Part | Layer | Priority |
 |---|---|---|---|
-| P1 | Letters + helper approval | backend | MUST |
-| P2 | Doctor → letter / helper wiring | backend | MUST |
-| P3 | Sample-documents family ("Revathi") | backend + data | MUST |
+| P1 | Letters + helper approval | backend | MUST · ✅ done |
+| P2 | Doctor → letter / helper wiring | backend | MUST · ✅ done |
+| P3 | Sample-documents family ("Revathi") | backend + data | MUST · ✅ done |
 | P4 | Voice: speech-to-text + text-to-speech | backend | MUST |
 | P5 | Login + chat history | backend | SHOULD |
 | P6 | SMS outbox + summary SMS + WhatsApp share | backend | SHOULD |
@@ -183,9 +186,9 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 **Data:** a new persona `revathi_docs` in `data/personas.json`, with documents as SAMPLE cards (document, name as printed, DOB, address; no numbers).
 
 **Problems built in:**
-- The ration card says "S. Revathi" while Aadhaar says "Revathi Sekar" (name risk).
-- The income certificate is missing.
-- The husband's death certificate spells the name differently.
+- Aadhaar says "Revathi Sekar", the ration card "S. Revathi", the passbook "REVATHI S" (name conflict).
+- The husband's death certificate is not with her (missing).
+- *(An income certificate is not in our verified document rules for these schemes, so it isn't used.)*
 - Aadhaar is not linked to the bank account in use.
 
 **Endpoint:** `GET /api/sample_docs/{persona}` returns the cards.
@@ -197,7 +200,13 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 - If a problem stays stuck, a `grievance` is offered.
 - The exact scheme list is whatever the rules engine says; never hard-code verdicts.
 
-**Done-check:** a test asserts the name risk, the missing income certificate, the bank task, and trips with-plan < without-plan.
+**Done-check (passed):**
+- name check RED;
+- missing: death certificate + bank linking;
+- the passbook name fix happens in the bank visit (each name fix goes to the office that issued the document);
+- trips **4 → 3**;
+- the name correction and bank letters are suggested;
+- ticking a fix leads to "Completed".
 
 #### P4: Voice (MUST)
 **Code:** `voice.py` per `03_ARCHITECTURE.md` §4a.
@@ -236,7 +245,7 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 
 #### P6: SMS outbox + summary (SHOULD)
 **Code:** `engine/notify.py`.
-- `summary_sms(snapshot, lang)`: ≤ 3 SMS segments in Tamil, for example: "Thunai: eligible for 3 schemes (about ₹30,000/year). Next: Bank — link Aadhaar; Taluk office — income certificate. Never share your OTP."
+- `summary_sms(snapshot, lang)`: ≤ 3 SMS segments in Tamil, for example: "Thunai: eligible for 3 schemes (about ₹30,000/year). Next: Bank — link Aadhaar; Panchayat office — death certificate. Never share your OTP."
 - Outbox table `outbox(id, phone, text, reason, created)`.
 
 **Endpoints:**
@@ -308,7 +317,7 @@ Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
 
 ### Eval 2 demo story (about 5 min)
 1. **Login** with phone + PIN → "Previous conversations" shows the earlier Murugan chat → reopen it. *(Memory)*
-2. **Revathi (sample documents)** → the Fix tab shows the name risk, the missing income certificate and the unlinked bank → fix plan in the fewest visits → tick a task → the activity log re-plans. *(Find problems, fix them)*
+2. **Revathi (sample documents)** → the Fix tab shows the name conflict, the missing death certificate and the unlinked bank → fix plan in the fewest visits → tick a task → the activity log re-plans. *(Find problems, fix them)*
 3. **Draft the name correction letter** → helper logs in → approves → Print. *(Humans approve)*
 4. **Meena: money stopped** → 3 questions → "Aadhaar not linked to the account you use" → bank seeding letter. *(Doctor)*
 5. **Simulate 15 days later** → reminders + SMS outbox; **Send summary** / WhatsApp share. *(Follow until resolved)*

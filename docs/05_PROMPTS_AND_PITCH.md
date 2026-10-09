@@ -1,6 +1,13 @@
 # Stage 5: Prompts, Letter Templates & Pitch — Thunai
 
-Design text used during the build (B2 uses §1; MOD-1 / B5 use §3) and during the evaluations (§4–§7).
+Design text used during the build (B2 uses §1; B4 / B5 use §3) and during the evaluations (§4–§7).
+
+> **v2 (after Evaluation 1):**
+> - §3 now covers all 6 letter kinds (implemented in `engine/letters.py`).
+> - §5 is the new Evaluation 2 script: login, Revathi, letter approval, Meena, follow-up, voice.
+> - §6 adds questions on SMS, login and sample documents.
+> - §7 slides updated.
+> - UiPath is dropped everywhere.
 
 ---
 
@@ -226,10 +233,20 @@ Footer: "This pack helps you prepare. The department makes the final decision. N
 ```
 **English:** To: The Special Tahsildar (Social Security Scheme), {taluk} Taluk · Subject: Request to reconsider rejected Destitute Widow Pension application · Body: widow, destitute, {age}; rejected for "{rejection_reason}"; {missing_document_en} now enclosed; request reconsideration · Enclosures · Place, date, signature.
 
-### 3.4 Letter rules
-- Placeholders not known → leave a blank line `________` (never invent data).
+### 3.4 More letters (v2, same rules)
+| Kind | To | Purpose | Offered when |
+|---|---|---|---|
+| `bank_seeding_request` | Branch Manager, ________ Bank | Link (seed) Aadhaar to the savings account for DBT (NPCI mapper); reactivate if inactive; ask for an acknowledgement | A member's account isn't linked or is inactive, or the Doctor finds a bank linking cause |
+| `name_correction_request` | The office that issued the document (ration card: Taluk Supply Officer; passbook: bank; patta: Tahsildar; school / college; death certificate: Registrar of Births and Deaths) | Correct the printed name to match Aadhaar | A document's name differs from Aadhaar |
+| `grievance` | KMUT grievance cell (portal / CM Helpline 1100) | Benefit not received; request status check and release | Doctor outcome "cause not clear" |
+
+Each letter is in Tamil and then English, polite and simple, with no AI-written text, so names and numbers are always exact.
+
+### 3.5 Letter rules
+- Placeholders not known → leave a blank line `________` (never invent data). Account and Aadhaar numbers are **always** blank, written by hand.
 - Footer on every letter: "Prepared with Thunai · Draft reviewed by helper: {helper_name or ________}".
 - DRAFT watermark until approved; Print button only after approval.
+- Only letters the agent suggests for this family can be drafted (the API refuses others).
 
 ---
 
@@ -247,19 +264,24 @@ Footer: "This pack helps you prepare. The department makes the final decision. N
 | 3:45 | Teammate 2 | "After lunch: documents, the name-mismatch matrix, trips saved, the Rejection Doctor for Meena, and appeal letters a helper approves." |
 | 4:15 | All | Questions |
 
-## 5. Evaluation 2 script (5–7 min): "It fixes and follows through"
+## 5. Evaluation 2 script (6–7 min): "It fixes and follows through"
 | Time | Who | Say / do |
 |---|---|---|
-| 0:00 | Teammate 1 | Meena hook + 1.48 lakh (30 s) |
-| 0:30 | You | Murugan: Load → ₹30,000 → **live re-plan** (₹18,000) → change back |
-| 1:30 | You | **Fix tab:** "Kavya's Aadhaar says *Kavya Murugan*, her school record says *M. Kavya*: 🟡 a risk we catch *before* she applies." Missing: Kavya's bank account. |
-| 2:15 | You | **Plan by office:** "One bank visit fixes two schemes. **6 trips become 2.**" Tick a task → 🔁 re-plan. |
-| 2:45 | You | **Application Pack** → print preview |
-| 3:15 | You | **Meena:** "My ₹1,000 stopped" → yes → no → "Most likely your Aadhaar is linked to an old account. Check it in 1 minute on myAadhaar." (Officially listed causes in the KMUT FAQ.) |
-| 4:00 | You | **Lakshmi:** appeal letter in Tamil → **Helper tab → Approve** → print. "A human always approves." |
-| 4:45 | You | (if built) ⏩ "15 days later": the agent reminds and escalates on its own · 🤖 robot fills the e-Sevai form |
-| 5:15 | Teammate 2 | **How it's different** slide (myScheme / Jugalbandi / Kisan e-Mitra vs Thunai) + **architecture** in automation terms: "agent decides → tools act → human approves → next, an RPA robot submits at e-Sevai." |
-| 6:00 | Teammate 1 | Close: "**Find. Fix. Follow.** Our pilot plan: NSS volunteers take Thunai to adopted villages." |
+| 0:00 | Teammate 1 | "In the morning you saw Thunai **find** schemes. Now: **fix** the problems that get families rejected, and **follow** until the money arrives." |
+| 0:20 | You | **Login** with phone + PIN → "Previous conversations" → reopen Murugan's chat. "The family can come back any day; nothing is lost." *(Remember)* |
+| 0:50 | You | Click **Revathi (sample documents)**: "These are sample cards, no real IDs. Aadhaar says *Revathi Sekar*, the ration card says *S. Revathi*, the passbook *REVATHI S*. Her husband's death certificate is missing and her Aadhaar isn't linked to the bank." |
+| 1:30 | You | **Fix tab:** name check shows the conflict → plan by office: "The passbook name fix happens **in the same bank visit** as the Aadhaar linking. Visits: **4 → 3**." Tick a task → the activity log shows **Re-plan: Completed**. |
+| 2:15 | You | **Letters:** "Draft the name correction letter" → DRAFT preview (Tamil + English, account numbers left blank) → **Helper tab**: helper approves → **Print**. "A human always approves." |
+| 3:00 | You | **Meena:** "My ₹1,000 stopped" → 2 questions → "Most likely her Aadhaar is linked to an old account. Check it in 1 minute on myAadhaar." The bank visit joins her plan; the bank letter is suggested. |
+| 3:45 | You | **"15 days later":** the agent, **on its own**, reminds about open tasks, warns about the appeal deadline, escalates a stuck task to the helper → **SMS outbox** shows the Tamil summary → **Share on WhatsApp**. |
+| 4:30 | You | **Voice:** speak a Tamil sentence → it understands → the reply is spoken in Tamil. |
+| 5:00 | Teammate 2 | **How it's different** + **architecture:** "Rules decide, two AIs understand and must agree, a human approves. Letters come from templates, so no invented names or numbers." |
+| 5:45 | Teammate 1 | Close: "**Find. Fix. Follow.** Pilot plan: NSS volunteers take Thunai to adopted villages." |
+
+**Backup paths:**
+- Login fails → use the demo buttons (guest).
+- Voice fails → type.
+- AI down → demo families load instantly.
 
 ## 6. Judge Q&A (who answers)
 | Question | Answer | Who |
@@ -270,15 +292,19 @@ Footer: "This pack helps you prepare. The department makes the final decision. N
 | How are rules kept up to date? | Each scheme is a data file with source + checked date; a helper can update it; next: AI drafts updates from new government orders, a human verifies | Teammate 2 |
 | How do you count trips? | One application visit per scheme + one per problem found at the counter, versus distinct offices in our grouped plan; shown openly | You |
 | Is "M. Kavya" really rejected? | It's a risk flag, not a rejection; name mismatches are an officially noted cause of payment failure, and fixing them early is cheap | You |
-| Privacy? | No Aadhaar/bank/OTP asked; numbers stripped before the AI; plan stays on the phone; free-tier AI only sees anonymised text; production would use a paid or government-hosted model | Teammate 2 |
+| Privacy? | No Aadhaar/bank/OTP asked; numbers stripped before the AI; login stores only phone + hashed PIN + family facts; one-tap delete; guest mode; production would use a paid or government-hosted model | Teammate 2 |
+| Does it really send SMS? | It prepares each message in an outbox, ready for an SMS provider; WhatsApp share works today. Real SMS needs a paid, DLT-registered sender. | You |
+| Why a PIN, not an OTP? | Real OTP SMS costs money, and we tell people never to share an OTP. Production: the government SMS gateway. | You |
+| Are those real documents? | No: sample cards marked SAMPLE, with no numbers. Thunai never reads or stores real IDs. | Teammate 1 |
+| Who writes the letters, the AI? | No: fixed templates filled from the family's facts, so names and numbers are exact. Unknown details stay blank. A helper approves. | You |
 | Will an illiterate farmer use it? | They don't need to: their daughter or an NSS / e-Sevai helper runs it in Tamil | Teammate 1 |
 | Why free AI models? | Cost ₹0 and three providers in a chain; it falls back offline. The AI is isolated in one file, so it's easy to swap | You |
-| Where's the RPA? | The agent produces the structured application; the next step is a robot filling the e-Sevai form ({S5 demo if built}) | You |
-| What doesn't it solve? | The family still visits the office once, prepared; the department decides; 5 schemes in the prototype | Teammate 1 |
+| Does it apply for me? | It prepares the pack and letters; the family or helper submits on the official site. Roadmap: an RPA robot fills the e-Sevai form from the approved pack, still stopping before Submit. | You |
+| What doesn't it solve? | The family still visits the office, prepared; the department decides; it can't see government records; SMS is an outbox; the prototype covers only officially verified schemes | Teammate 1 |
 
 ## 7. Slides (Teammate 2, 5 slides)
 1. **The problem:** Meena's story · 1.48 lakh paid only after appealing (DT Next, Jul 2024) · 2.14 crore PM-KISAN eKYCs pending (Rajya Sabha reply, Jul 2023)
 2. **How it's different:** table: myScheme · Jugalbandi · Kisan e-Mitra · Thunai (prevent · diagnose · prepare · follow up · whole family · Tamil)
 3. **How it works:** Find → Fix → Follow; "Rules decide · AI understands · humans approve"
 4. **Architecture:** agent loop (perceive → decide → act → re-plan) · rules engine · 3-provider AI chain · privacy guard · helper approval
-5. **Impact & roadmap:** ₹30,000/year + 6 → 2 trips for one family · pilot with NSS units · RPA submission at e-Sevai · more schemes
+5. **Follow + impact:** login and history · SMS outbox + WhatsApp · "15 days later" follow-up · new-scheme alerts · ₹30,000/year + 6 → 2 visits for one family · roadmap: NSS pilot, real SMS gateway, RPA form filling, more verified schemes

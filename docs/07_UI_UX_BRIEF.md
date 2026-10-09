@@ -1,5 +1,25 @@
 # UI/UX Design Brief — Thunai (துணை) 🔒 FINAL
 
+> **Phase 2 UI (v2, after Evaluation 1), built in B5 in the same government style, with no emojis:**
+> - **Navy bar:** demo families Murugan · **Revathi (sample documents)** · Meena · Lakshmi.
+> - **Header:** Login / History · Start over.
+> - **Fix tab:**
+>   - SAMPLE document cards (Revathi): document, name as printed, two lines, a "SAMPLE" label, no numbers;
+>   - name check table (Match / Name risk / Conflict, reason on click);
+>   - missing documents with where to get each;
+>   - fix plan per office (what to bring, "unblocks N schemes", Done checkbox → re-plan in the log);
+>   - visits "3 (instead of 4)".
+> - **Doctor tab:** 4 entry buttons; Yes / No / Don't know; outcome box (Most likely cause, Check in 1 minute, numbered fix steps, Draft letter button).
+> - **Letters tab:**
+>   - "Suggested letters" list, each with the agent's reason and a Draft button;
+>   - the drafts list with a status tag (Draft / Approved);
+>   - Open opens `/letter/{id}`: A4 page, DRAFT / வரைவு watermark until approved, Print only after approval.
+> - **Helper tab:** queue (letter, member, the agent's reason, time) with Approve; escalations with Mark reviewed; helper name field.
+> - **Follow panel:** SMS outbox (to, message, reason, time) · Send summary · Share on WhatsApp · "Simulate 15 days later".
+> - **Login screen:** phone + 4-digit PIN, consent checkbox, Continue as guest; Previous conversations list; Delete my data; helper login.
+> - **Voice:** Mic button next to the chat input (the transcript is editable before sending); speaker toggle in the header; spoken numbers get a "please confirm" tag.
+> - **Log labels:** Goal, Plan, Action, Decision, Re-plan, Follow-up (automatic), Privacy.
+>
 > **Final update (9 Oct): visual style is a clean government-portal design** (supersedes the brutalist trial below).
 > Tricolour strip, white header with wordmark, navy service bar, white panels with 1px borders and 4px radius,
 > summary boxes, data tables with "Edit" links, plain-text status tags (Eligible / Needs information / Not eligible),

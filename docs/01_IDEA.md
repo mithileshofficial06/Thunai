@@ -1,4 +1,4 @@
-# Thunai (துணை) — FINAL IDEA 🔒 LOCKED (9 Oct 2026, v-final; no further idea changes, only data corrections from Stage 2)
+# Thunai (துணை) — FINAL IDEA 🔒 v2 (9 Oct 2026, after Evaluation 1)
 ### A Scheme Sathi agent for Tamil Nadu families
 
 **Event:** CTRL+AI Inter-College Agentic AI Challenge · Sri Sairam Engineering College · 9 Oct 2026 · 6 hrs · team of 3
@@ -6,29 +6,39 @@
 
 > **Why the name:** every PS-10 team will call their app "Scheme Sathi". **Thunai** (துணை, Tamil for *support* or *companion*) is ours: short, Tamil, memorable.
 
+**What changed in v2:**
+- **"Follow" now means Remember + Remind + Re-match:** login and chat history, an SMS outbox with a summary and reminders, and alerts when a new scheme matches a saved family.
+- A **sample-documents family (Revathi)** shows document problems being found and fixed.
+- **Six letter types**, all drafted from templates and approved by a helper.
+- Up to **8–9 verified schemes** (only with an official source), plus a **source check**.
+- The UiPath robot is **dropped**: Thunai prepares the application and the family submits it.
+- The UI is a **government-portal style** with no emojis.
+- The principle is now *Rules decide · AI understands · Humans approve*.
+
 ---
 
 ## 1. One line
-> **"Other tools tell you which schemes exist. Thunai helps your family get it right the first time."**
+> **"Other tools tell you which schemes exist. Thunai helps your family get the money: finds what you're owed, fixes what would get you rejected, and follows up until it arrives."**
 
-**Find → Fix → Follow:** an AI agent that **finds** the schemes a Tamil Nadu family qualifies for, **fixes** the paperwork problems that get applications rejected or payments stopped, and **follows** up on pending actions, in Tamil.
+**Find → Fix → Follow**, in Tamil, for the whole family.
 
-**Principle:** *Rules decide. AI explains. Humans approve.*
+**Principle:** *Rules decide · AI understands · Humans approve.*
+- **Rules decide:** eligibility comes from deterministic rules taken from official documents.
+- **AI understands:** two AI models read everyday Tamil and English (and Tamil voice) and must agree, quoting the user's own words as proof.
+- **Humans approve:** every letter and every unclear case goes to a helper.
 
 ---
 
 ## 2. PS-10 compliance check ✅
 
-| PS-10 requirement | How Thunai meets it | Hero piece | Status |
-|---|---|---|---|
-| **"multilingual AI agent"** | Tamil and English throughout (chat, verdicts, documents, letters); **Tamil voice mode** (speak in Tamil via Groq Whisper; replies spoken by a Tamil neural voice via edge-tts), must-have for Eval 2. A real agent: goal → plan → AI-chosen actions → tools → observe → re-plan, shown live. | H1, H3, H5 | ✅ |
-| **"learns a citizen's situation through conversation"** | Adaptive interview of the **whole family**; asks only the next relevant question; live family card; **corrections trigger automatic re-planning** | H1 | ✅ |
-| **"checks eligibility against government scheme rules"** | Deterministic rules engine over 4 core schemes (6 if time allows) (from JSON rule files with sources); ✅ / ❓ / ❌ per member, **rule quoted + source link**; the LLM never decides | H2 | ✅ |
-| **"lists the missing documents"** | Per-scheme document checklist → **"Missing documents"** list with where to get each one and what to bring, **plus** the Consistency Matrix for name mismatches | H4 | ✅ |
-| **"prepares the application"** | **Application Pack** per eligible scheme: pre-filled application details from the conversation + document checklist + where to submit, printable. Plus a **pre-filled appeal letter** for rejected cases (helper-approved). | H5 | ✅ |
-| **"tracks pending actions"** | Fix plan = a **task tracker** (To do / Done); marking a task done makes the agent **re-plan** the next step; Rejection Doctor for stopped payments; proactive ⏩ reminders as stretch S1 | H4, H5 | ✅ |
-
-**All six PS-10 requirements are met by the must-build hero pieces (H1–H5), with no dependency on stretch items.**
+| PS-10 requirement | How Thunai meets it | Status |
+|---|---|---|
+| **"multilingual AI agent"** | Tamil and English everywhere; **Tamil voice in and out** (Groq Whisper and edge-tts). A real agent: goal → plan → actions → tools → observe → **re-plan**, plus **actions it takes by itself** (reminders, re-match), all shown live in the activity log. | ✅ |
+| **"learns a citizen's situation through conversation"** | Adaptive interview of the **whole family**; asks only the next relevant question; two-model accuracy check; any correction triggers a re-plan | ✅ |
+| **"checks eligibility against government scheme rules"** | Deterministic rules engine over the verified schemes; Eligible / Needs information / Not eligible per member, with the rule and official source quoted; the AI never decides | ✅ |
+| **"lists the missing documents"** | Missing documents with where to get each one and what to bring, plus the **name check across documents** (Match / Name risk / Conflict) | ✅ |
+| **"prepares the application"** | **Application pack** per eligible scheme, plus **letters**: name correction, bank (Aadhaar) linking request, complaint, KMUT appeal and pension petition. Drafted from templates, approved by a helper, then printed. The family or helper submits on the official site. | ✅ |
+| **"tracks pending actions"** | Fix plan as a task tracker (ticking a task triggers a re-plan); **login + history** so a family can return; **SMS outbox** (summary + reminders); **"15 days later"** follow-up with escalation; **Doctor** when money stops | ✅ |
 
 ---
 
@@ -40,11 +50,17 @@ Eligible families lose scheme money **after** they are found eligible, at three 
 |---|---|---|
 | **A. Never applied, or not for all schemes** | Schemes are spread across central and state portals; low awareness is the main barrier reported by field groups (Haqdarshak) | Unclaimed ₹ every year |
 | **B. Rejected at application** | Magalir Urimai: **1.63 crore** applications (Aug 2023); **1.06 crore** initially selected; **1.48 lakh** rejected applicants started receiving ₹1,000/month **after their appeals were considered** (DT Next, July 2024) | Months of lost benefit; repeated office visits |
-| **C. Enrolled, but payment stops** | PM-KISAN: **2,14,75,001** farmers had not completed eKYC (minister's written reply to the Rajya Sabha, reported July 2023); about **6.65 lakh** Telangana farmers lost the benefit (about ₹133 crore) because eKYC wasn't updated (Deccan Chronicle, Dec 2022). DBT credits can bounce when Aadhaar is seeded to a dormant account or names don't match *(a known cause, not a statistic)*. | Money stops silently; the family doesn't know why |
+| **C. Enrolled, but payment stops** | PM-KISAN: **2,14,75,001** farmers had not completed eKYC (Rajya Sabha written reply, reported July 2023); about **6.65 lakh** Telangana farmers lost the benefit (about ₹133 crore) because eKYC wasn't updated (Deccan Chronicle, Dec 2022). DBT credits can bounce when Aadhaar is seeded to a dormant account or names don't match *(a known cause, not a statistic)*. | Money stops silently; the family doesn't know why |
 
-**Root cause:** mostly **fixable paperwork problems**: name mismatches across documents (common with Tamil names written with initials), Aadhaar–bank seeding, pending eKYC, missing certificates. Nobody checks these **before** applying or explains them **after** a rejection, so families pay middlemen, make repeated trips (each costing a day's wages) or give up.
+**Root cause:** mostly **fixable paperwork problems**:
+- name mismatches across documents (common with Tamil names written with initials)
+- Aadhaar–bank seeding
+- pending eKYC
+- missing certificates
 
-**Real-user evidence (to collect on the morning of 9 Oct):** call 2–3 people (parents, relatives, college staff) and ask *"Have you or someone you know had a scheme application rejected or a payment stop? What happened?"* Put **one real quote** on the problem slide. **Never invent one;** if no one is reached, leave it out.
+Nobody checks these **before** applying, explains them **after** a rejection, or **follows up** until the money arrives. So families pay middlemen, make repeated trips (each costing a day's wages), or give up.
+
+**Real-user evidence:** put one real quote on the slide only if collected. **Never invent one.**
 
 ---
 
@@ -52,196 +68,218 @@ Eligible families lose scheme money **after** they are found eligible, at three 
 
 | Existing | What it does | What it doesn't do |
 |---|---|---|
-| **myScheme** (Govt of India) | Form-based eligibility matching across thousands of central and state schemes | Not conversational; one person at a time; no rejection prevention; no follow-up |
+| **myScheme** (Govt of India) | Form-based eligibility matching across thousands of schemes | Not conversational; one person at a time; no rejection prevention; no follow-up |
 | **Jugalbandi** (Microsoft / AI4Bharat, May 2023) | WhatsApp bot answering scheme questions in local languages | Answers questions only |
-| **Kisan e-Mitra** (Ministry of Agriculture, Sept 2023) | AI chatbot for **PM-KISAN only** (status, payment, ineligibility); includes Tamil | One scheme; no state schemes; no cross-document checks; no appeals |
+| **Kisan e-Mitra** (Ministry of Agriculture, Sept 2023) | AI chatbot for **PM-KISAN only**; includes Tamil | One scheme; no cross-document checks; no appeals |
 | **Haqdarshak** | Trained field agents with a rule-based app | Depends on human agents; limited reach |
 | **e-Sevai / CSC / grievance camps** | Official places to apply and complain | Families arrive unprepared |
 | **Typical hackathon team** | "Multilingual chatbot for government schemes" | Same as Jugalbandi |
 
-**Our gap (to our knowledge, not covered by any existing tool):** a **family-level, cross-scheme agent** that **prevents rejection before applying, diagnoses and drafts appeals after rejection, prepares the application pack and tracks the fixes**. It **works alongside** government tools by pointing users to myAadhaar, PM-KISAN Know Your Status and e-Sevai for official verification and submission.
+**Our gap (to our knowledge):** a **family-level, cross-scheme agent** that covers the whole journey:
+- prevents rejection **before** applying (document and name checks);
+- prepares the pack and the letters;
+- diagnoses stopped payments **after** enrolment;
+- **follows up on its own** (reminders, escalation, new-scheme alerts).
+
+It **works alongside** government tools (myAadhaar, PM-KISAN Know Your Status, e-Sevai) for official checks and submission.
 
 ---
 
 ## 5. Target users
 
-| Role | Who | Need |
-|---|---|---|
-| **Beneficiary** | Low-income Tamil Nadu families: small farmers, women heads of family, elderly people and widows, government school students | Every benefit they're owed, with the fewest office trips |
-| **Primary user** | The family's smartphone user (son or daughter) | Do it for their parents in minutes, in Tamil |
-| **Secondary user** | Community helper (e-Sevai operator, NGO or **NSS volunteer**) | Help many families quickly; approve letters and unclear cases |
+| Role | Who | Need | How they sign in |
+|---|---|---|---|
+| **Beneficiary** | Low-income TN families: small farmers, women heads of family, elderly people and widows, government-school students | Every benefit they're owed, with the fewest office trips | Phone number + 4-digit PIN, or **guest** |
+| **Primary user** | The family's smartphone user (son or daughter) | Do it for their parents in minutes, in Tamil, and come back later | Same account as the family |
+| **Helper** | e-Sevai operator, NGO or **NSS volunteer** | Help many families; approve letters and unclear cases | Helper login (username + password) |
 
-**Access:** a link or QR code · no install · no login · Tamil default, English option · mobile first, big buttons, simple words.
+**Access:**
+- a link or QR code, no install, guest mode always available
+- Tamil default, English option
+- mobile first, big buttons, simple words
+
+**Why a PIN, not an OTP:** a real OTP SMS costs money, and Thunai tells people never to share an OTP.
 
 ---
 
 ## 6. How the agent works (what judges see)
 
 ```
-GOAL  "Get the Murugan family every benefit they are owed, with the fewest trips"
-PLAN  1. Learn the family  2. Check the schemes  3. Check documents  4. Plan the fewest trips  5. Prepare the packs
-ACT   extract_facts → check_eligibility → check_documents → check_names → plan_fixes → prepare_pack
-OBSERVE  results → ₹ unlocked, missing documents, risks
-RE-PLAN  when a fact changes ("income is ₹3 lakh") or a task is done ("Selvi's bank account is now linked to Aadhaar")
-HUMAN    helper approves letters and unclear cases
+GOAL     "Get the Murugan family every benefit they are owed, with the fewest trips"
+PLAN     1. Learn the family  2. Check schemes  3. Check documents  4. Plan the fewest trips  5. Prepare the packs
+ACT      understand (2 AIs) → check eligibility → check documents + names → plan fixes → draft letters
+OBSERVE  ₹ per year, missing documents, name risks, office visits
+RE-PLAN  a fact changes ("income is ₹3 lakh") or a task is done ("Selvi's bank is now linked")
+ON ITS OWN  "15 days later": reminders, deadline warnings, escalation; new scheme → re-match → SMS
+HUMAN    a helper approves every letter and every unclear case
 ```
 
-The **agent activity panel** shows the goal, the plan (ticked off step by step) and every tool call live, including **re-plan events**.
+The **agent activity log** shows each step live, labelled Goal / Plan / Action / Decision / Re-plan / Follow-up / Privacy.
 
 ---
 
 ## 7. The solution: Find → Fix → Follow
 
-### 🔍 FIND
-1. **Consent screen (one line):** *"We only use what you tell us in this conversation. We never ask for an Aadhaar number, bank number or OTP. Your answers are sent to a free AI service to understand them. Your plan is saved only on this phone; tap Clear to delete it."* (Saved in the browser's local storage, so the family can come back days later and continue tracking.)
-2. **Conversational intake** in Tamil or English, covering the whole family; asks only the next relevant question.
-3. **Live family card:** facts appear as the user answers; **any correction triggers automatic re-checking and re-planning**.
-4. **Rules engine:** ✅ / ❓ / ❌ per member per scheme, **rule quoted + official source link**.
-5. **Impact meter:** **₹ unlocked per year**.
+### FIND
+1. **Consent:** *"We never ask for an Aadhaar number, bank number or OTP. Your answers are sent to a free AI service to understand them. If you log in, your family's details are saved under your phone number; you can delete them at any time."*
+2. **Conversation** in Tamil or English (typed or **spoken**), covering the whole family; asks only the next relevant question.
+3. **Two-AI accuracy check:**
+   - Two models read each message.
+   - Each must quote the user's words as proof.
+   - Numbers are cross-checked by code.
+   - If the models disagree, Thunai asks instead of guessing.
+4. **Live family card** with Edit links. A correction leads to a re-check and a re-plan.
+5. **Rules engine:** Eligible / Needs information / Not eligible per member, with **the rule, the official source and the checked date**.
+6. **Estimated benefit:** ₹ per year.
 
-### 🛠️ FIX
-6. **Missing documents:** per eligible scheme, "Have it? Yes / No" → a list of missing documents with **where to get each one and what to bring**.
-7. **Document Consistency Matrix** ⭐: family members × the documents needed, names typed **as printed** → 🟢 match · 🟡 initials or spelling **risk** · 🔴 conflict. Unknowns (eKYC done? bank seeded?) → **"check in 1 minute"** tasks using official tools.
-8. **Fix plan = task tracker:** tasks ordered so the one that **unblocks the most schemes** comes first, **grouped by office** (bank, e-Sevai, VAO), each with To do / Done. Marking a task done → **the agent re-plans**.
-9. **Trips saved** on the impact meter (formula in section 9).
+### FIX
+7. **Missing documents:** where to get each one and what to bring.
+8. **Name check across documents** (Match / Name risk / Conflict). Each conflict is sent to **the office that issued that document** (for example a passbook fix happens at the bank, during the same visit as the Aadhaar linking).
+9. **Fix plan = task tracker**, grouped by office and ordered by what unblocks the most schemes. Ticking a task leads to a re-plan. **Office visits saved** (formula in section 9).
+10. **Revathi (sample documents):** document cards marked SAMPLE, with no numbers, show a name conflict, a missing death certificate and an unlinked bank account being found and planned.
 
-### 📋 FOLLOW
-10. **Application Pack** per eligible scheme: pre-filled application details + document checklist + where to submit → print.
-11. **Rejection Doctor:** "rejected" or "my payment stopped" → yes/no decision tree → **most likely cause + how to verify it officially + fix steps**.
-12. **Appeal letter** (Tamil and English), pre-filled → **helper approves** → print.
+### FOLLOW
+11. **Application pack + letters:**
+    - name correction
+    - bank linking request
+    - complaint
+    - KMUT appeal
+    - pension petition
+
+    All are written in Tamil and English and drafted from templates (names and numbers are always exact). Unknown details are left blank to be written by hand. They stay **DRAFT** until a helper approves, then they can be printed.
+12. **Doctor** ("money stopped" or "rejected"): yes/no questions lead to the **most likely cause, how to check it in 1 minute, fix steps, the office added to the plan, and the right letter**.
+13. **Remember:** login and **previous conversations**; one-tap delete.
+14. **Remind:** an **SMS outbox** with a short Tamil summary (benefit, next office, what to bring, "never share your OTP") plus a free **WhatsApp share** button. Real SMS sending plugs in later.
+15. **Follow up on its own:** **"15 days later"** gives reminders for open tasks, warns about appeal deadlines and escalates stuck tasks to a helper. When a new scheme is added, **re-match** checks every saved family and alerts the ones who now qualify.
+16. **Source check (stretch):** detects changed official pages and marks them "needs review". It never edits rules by itself.
 
 ---
 
 ## 8. Requirements
 
-### 8.1 Hero pieces: must build (they cover all of PS-10)
-| ID | Requirement | Eval | Acceptance criteria (shown in the demo) | Est. |
-|---|---|---|---|---|
-| **H1** | Consent line + Tamil/English intake → live family card → **correction triggers re-plan** + **"Load Murugan family" demo button** (feeds the scripted answers through the same agent, so the demo can't stall on stage) | Eval 1 | Murugan family captured in ≤10 turns; changing income to ₹3L flips Selvi's KMUT to ❌ and updates ₹ automatically | 1.5 h |
-| **H2** | Rules engine (JSON rule files) over the **4 core schemes** → scheme cards (rule + source) → **₹ unlocked** | Eval 1 | Correct verdicts for all 3 personas; "₹30,000/year" shown | 1 h |
-| **H3** | Agent panel: **goal + plan + live tool calls + re-plan events** | Eval 1 | Plan steps tick off in order; re-plan event appears on a correction | 45 min |
-| **H4** | Missing documents + Consistency Matrix + fix plan grouped by office **with To do / Done tracking** + **trips saved** | Eval 2 | Kavya's missing bank account listed with where to get it; Kavya's row 🟡; "Bank visit (2 tasks, unblocks 2 schemes)" first; "trips 6 → 2"; marking done → re-plan | 1.5 h |
-| **H5** | **One template engine** → (a) **Application Pack** per scheme, (b) **Rejection Doctor → appeal letter → helper approve** → print | Eval 2 | Murugan pack printed; Meena's case diagnosed; Lakshmi Paati's letter approved | 1.25 h |
+### 8.1 Must build (all of PS-10)
+| ID | Requirement | Eval | Status |
+|---|---|---|---|
+| **H1** | Consent + Tamil/English chat → live family card → correction leads to re-plan; demo buttons | Eval 1 | ✅ built |
+| **H2** | Rules engine → scheme results (rule + source + checked date) → ₹ per year | Eval 1 | ✅ built |
+| **H3** | Agent activity log: goal, plan, actions, re-plan | Eval 1 | ✅ built |
+| **H4** | Missing documents + name check + fix plan by office with Done tracking + office visits saved + **Revathi** | Eval 2 | backend ✅ · UI in B5 |
+| **H5** | Application pack + 5 letters + **helper approval** + print; **Doctor** wired to plan and letters | Eval 2 | backend ✅ · UI in B5 |
+| **H6** | **Voice:** speak Tamil (Whisper) and replies spoken (edge-tts) | Eval 2 | B4a P4 |
 
-About 6 hrs of work split across 3 people working in parallel → fits about 5 hrs of wall-clock time.
-
-### 8.2 Stretch, strictly in this order and only after H1–H5 work end to end
-| ID | Requirement | Est. |
-|---|---|---|
-| S1 | ⏩ **"15 days later": proactive reminders and escalation** (the agent acts on its own) | 30 min |
-| ~~S2~~ | *Promoted to must-have:* **Tamil voice mode**, 🎤 speak (Groq Whisper) + 🔊 replies spoken (edge-tts Tamil neural voice) | in B4 + B5 |
-| S3 | Bank Aadhaar-seeding request letter (second letter template) | 15 min |
-| S4 | WhatsApp share (`wa.me`) of the family summary | 15 min |
-| S5 | Robot fills a mock e-Sevai form (Playwright / UiPath) | 45 min |
-
-### 8.3 Non-functional
+### 8.2 Should build (Follow), in this order
 | ID | Requirement |
 |---|---|
-| NFR1 Accessibility | Mobile first, large targets, simple words, Tamil default, no install or login |
-| NFR2 Privacy | **Never** asks for or stores an Aadhaar number, bank account number or OTP; consent line; only names as printed and yes/no facts; no server database; the plan is saved **only on the user's phone** (browser local storage); one-tap Clear |
-| NFR3 Trust | Eligibility by rules only; every verdict cites a rule and source; "likely eligible; the department decides" |
-| NFR4 Human in the loop | Letters and unclear or conflicting cases need a helper's approval. **In the prototype:** a "Helper review" tab (the e-Sevai, NSS or NGO helper's view) lists pending items with the agent's reasoning, with Approve / Edit buttons. **In self mode**, unapproved letters are marked "DRAFT: get it checked by a helper or at e-Sevai". |
-| NFR5 Speed | Under 5 s per agent turn; Murugan demo under 2 min |
-| NFR6 Reliability | Every LLM step has a fallback (fixed question flow; Tamil templates for verdicts, documents and letters) |
-| NFR7 Maintainability | Each scheme is a JSON rule file with `source_url` and `last_verified`; editable without touching code |
+| **F1** | Login (phone + PIN, helper login), chat history, delete my data; guest mode for demos |
+| **F2** | SMS outbox + summary SMS + WhatsApp share |
+| **F3** | "15 days later" follow-up (reminders, deadline warning, escalation) + new-scheme re-match |
 
-### 8.4 Out of scope (deliberately)
-Real portal submission · reading government databases · document uploads or OCR · login · more than 6 schemes · a real WhatsApp bot.
+### 8.3 Stretch
+| ID | Requirement |
+|---|---|
+| **S1** | 3–4 more **officially verified** schemes (otherwise they stay disabled) |
+| **S2** | Source check: changed official page leads to "needs review" |
+
+### 8.4 Non-functional
+| ID | Requirement |
+|---|---|
+| NFR1 Accessibility | Mobile first, large targets, simple words, Tamil default, voice, guest mode |
+| NFR2 Privacy | **Never** asks for or stores an Aadhaar number, bank account number or OTP; the privacy guard removes such numbers before any AI call. A login stores only the phone number, a **hashed** PIN and the family facts. Consent at registration; one-tap delete; letters leave account numbers blank. |
+| NFR3 Trust | Eligibility by rules only; every result cites a rule, an official source and the checked date; "the department decides" |
+| NFR4 Human in the loop | Every letter and unclear case needs a helper's approval. Drafts carry a DRAFT watermark and can't be printed until approved. |
+| NFR5 Accuracy | Two AI models must agree, with evidence from the user's own words; spoken numbers are always confirmed; tested at **0 wrong facts** (16/18 automatic, 2 asked) |
+| NFR6 Reliability | Backup AI (Gemini); offline mode with direct questions; demo families load instantly |
+| NFR7 Maintainability | Each scheme is JSON with its source and checked date; adding a scheme needs no code change |
+
+### 8.5 Out of scope (deliberately)
+- Submitting to government portals
+- Reading government databases
+- Document uploads or OCR
+- Real SMS sending (outbox only)
+- Real OTP login
+- Unverified schemes
 
 ---
 
 ## 9. Impact numbers: how we count them (shown openly)
-- **₹ unlocked / year** = the sum of **verified** yearly benefits for ✅ schemes only (health cover shown separately, not added).
-- **Trips without Thunai** = for each counted scheme: 1 application visit (0 if the scheme is applied for online) + 1 extra visit per problem found at the counter (missing document, unlinked/inactive account, pending eKYC, name risk) *(assumption: unprepared, each problem is discovered at a separate visit)*.
-- **Trips with Thunai** = the number of **distinct offices** in the grouped fix plan, including the application offices.
-- **Murugan family check (tested in Stage 2):** without = PM-KISAN 1 + 1 (eKYC) = 2; KMUT 1 + 1 (Selvi's account not linked) = 2; Pudhumai Penn 0 (applied online on Penkalvi) + 1 (Kavya has no account) + 1 (name risk) = 2 → **6**. With = bank (Selvi's linking + Kavya's account, one visit) + e-Sevai (PM-KISAN eKYC + KMUT application) = **2**. So the demo says **"6 → 2"**. After the re-plan (income ₹3L): **4 → 2**. *(KMUT officially needs no income certificate, so none is listed.)* The full algorithm is in `data/documents.json` → `trips_algorithm`; the number is **computed by code, never hard-coded**.
-- The formula is shown in a tooltip and on the slide: *"here is how we count it."*
+- **₹ per year** = the sum of verified yearly benefits for Eligible schemes that are counted (only one of two conflicting schemes is counted; health cover is not added).
+- **Visits without Thunai** = for each counted scheme: 1 application visit (0 if online) + 1 visit per problem found at the counter (missing document, unlinked account, pending eKYC, name risk or conflict). *Assumption: unprepared, each problem is discovered at a separate visit.*
+- **Visits with Thunai** = the number of **distinct offices** in the grouped fix plan.
+- **Murugan:** **6 → 2**; after income is corrected to ₹3L: **4 → 2**.
+- **Revathi:** **4 → 3** (the passbook name fix joins the bank visit).
+- These numbers are computed by code, never hard-coded; the formula is shown in a tooltip.
 
 ---
 
-## 10. Schemes covered: 4 core, 2 if time allows
-**Rule:** amounts and limits go into the JSON **only after they are confirmed on the official page** (Stage 2). The ₹30,000 demo total must come from verified numbers.
+## 10. Schemes covered
+**Rule:** a scheme is enabled only with an **official source + checked date**; otherwise it stays disabled and is never shown.
 
-**Stage 2 done (9 Oct):** verified rules are in [`data/schemes.json`](../data/schemes.json); details in [02_DATA_VERIFICATION.md](02_DATA_VERIFICATION.md).
-
-| Scheme | Priority | Level | For | Key rules (Stage 2 status) |
-|---|---|---|---|---|
-| PM-KISAN | **Core** | Central | Landholding farmer families | ₹6,000/year; eKYC mandatory ✅ (official) |
-| Kalaignar Magalir Urimai Thogai | **Core** | TN | Woman head of family aged 21+ (ration-card rule) | Income < ₹2.5L; < 5 acres wet / < 10 acres dry; electricity < 3,600 units/yr; ₹1,000/month; no income certificate needed; appeal within 30 days via e-Sevai to the RDO ✅ official FAQ |
-| Pudhumai Penn | **Core** | TN | Girls who studied Classes 6–12 in government schools, now in their first UG / diploma / ITI | ₹1,000/month by DBT; no income limit; with other scholarships; the student applies herself on the Penkalvi portal ✅ official (TN Social Welfare Dept). Aided / RTE route → "Need info" (news only) |
-| Destitute Widow Pension / Old Age Pension | **Core** (needed for Lakshmi Paati) | TN | Destitute widows 18+ (property ≤ ₹1 lakh) / destitute BPL elders 60+ | ₹1,200/month since Aug 2023 ✅ official (TN Revenue Administration) |
-| Tamil Pudhalvan | Disabled | TN | The boys' counterpart | Not verified, so switched off in the data |
-| CMCHIS | Disabled | TN | Low-income families | Not verified, so switched off in the data |
+| Scheme | Level | For | Status |
+|---|---|---|---|
+| PM-KISAN | Central | Landholding farmer families | ✅ official |
+| Kalaignar Magalir Urimai Thogai | TN | Woman head of family, 21+ | ✅ official FAQ |
+| Pudhumai Penn | TN | Govt-school girls in their first UG / diploma / ITI | ✅ official |
+| Destitute Widow Pension | TN | Destitute widows 18+ | ✅ official |
+| Old Age Pension (IGNOAPS + state) | Central + TN | Destitute BPL elders 60+ | ✅ official |
+| Tamil Pudhalvan, differently-abled assistance, unmarried / deserted women pension, PMMVY | — | — | **S1**: enabled only if officially verified on 9 Oct |
+| CMCHIS | TN | — | Disabled |
 
 ---
 
-## 11. Demo personas
-| Persona | Situation | Shows |
+## 11. Demo families (all fictional)
+| Family | Situation | Shows |
 |---|---|---|
-| **Murugan family** (main, Tamil) | Murugan, 52, farmer with 1.5 acres; wife Selvi, 47, homemaker; daughter Kavya, 18, studied Classes 6–12 in a government school, **just admitted to first-year B.Sc**; about ₹90k/year. Selvi's bank account **is not Aadhaar-seeded**, Kavya **has no bank account of her own**, and Murugan **hasn't done PM-KISAN eKYC** (all scripted) | Plan → 3 schemes (PM-KISAN, Magalir Urimai, Pudhumai Penn), **₹30,000/year** → **re-plan when income is corrected (→ ₹18,000)** → missing: Kavya's bank account → Kavya 🟡 → fix plan by office → **trips 6 → 2** → Application Pack |
-| **Meena: "My ₹1,000 stopped"** (a different family) | Has been receiving Magalir Urimai; payment stopped 3 months ago | Rejection Doctor → likely bank seeding moved to a dormant account → check on myAadhaar → fix |
-| **Lakshmi Paati** | 66, widow, alone; pension rejected | Tamil appeal letter → **helper approves** → print |
+| **Murugan family** (main) | Farmer 52, wife Selvi 47, daughter Kavya 18 (first-year B.Sc). Selvi's bank account isn't linked to Aadhaar; Kavya has no bank account; PM-KISAN eKYC is pending. | 3 schemes, **₹30,000/year** → correction → **₹18,000** → fix plan → **6 → 2** → application pack |
+| **Revathi** (sample documents) | Widow 52, alone. Name forms differ: "Revathi Sekar" / "S. Revathi" / "REVATHI S". Death certificate missing; bank account not linked to Aadhaar. | Document problems found → fixes at the right offices → name correction and bank letters → helper approves → tick a fix → re-plan |
+| **Meena** ("my ₹1,000 stopped") | Aadhaar is still linked to an old, inactive account | Doctor → bank linking cause → bank visit added to the plan → bank letter |
+| **Lakshmi Paati** | 66, widow; pension rejected (no death certificate) | Doctor → pension petition → helper approves → print |
 
 ---
 
-## 12. Pitch and demo (5–7 min): a person first, statistics second
-1. **Open with Meena (15 s):** "Meena's ₹1,000 stopped three months ago. Nobody told her why. She has lost two days' wages going to offices."
-2. **The scale (15 s):** "In July 2024, 1.48 lakh women who had been rejected for Magalir Urimai started receiving it after appealing. How many never appealed?" (+ the real-user quote if collected)
-3. **Live demo (4 min):**
-   - Murugan family in Tamil (**"Load Murugan family"** button as backup) → the panel shows **goal and plan** → 3 schemes → **₹30,000/year**
-   - *"Actually, income is ₹3 lakh"* → **the agent re-plans live** → change back
-   - Missing documents → **Consistency Matrix: Kavya 🟡** → fix plan by office → **trips saved** → Application Pack
-   - Meena → Rejection Doctor → cause + how to verify
-   - Lakshmi Paati → Tamil appeal → **helper approves**
-4. **How it's different (30 s):** one slide comparing myScheme, Jugalbandi, Kisan e-Mitra and Thunai.
-5. **Architecture in automation terms (20 s):** agent (reasoning) → tools (rules engine, document checker, pack and letter generator) → human-in-the-loop approval → roadmap: an RPA robot fills the e-Sevai form.
-6. **Close (15 s):** *"Find. Fix. Follow. Rules decide, AI explains, humans approve. Our pilot plan: NSS volunteers take Thunai to adopted villages."*
+## 12. Pitch: Evaluation 2 story (5–7 min)
+1. **Login:** previous conversations → reopen the Murugan chat. *(Remember)*
+2. **Revathi:** sample documents → name conflict, missing certificate, unlinked bank → fix plan → tick → re-plan. *(Fix)*
+3. **Letter:** name correction drafted → helper logs in and approves → print. *(Humans approve)*
+4. **Meena:** money stopped → 2 questions → cause → bank letter. *(Doctor)*
+5. **"15 days later":** reminders, escalation, SMS outbox; send summary / WhatsApp. *(Follow on its own)*
+6. **Voice:** speak Tamil → hear Tamil. *(Inclusion)*
+7. **Close:** *"Find. Fix. Follow. Rules decide, AI understands, humans approve. Pilot plan: NSS volunteers take Thunai to adopted villages."*
 
 ---
 
 ## 13. Prepared answers for judges
 | Question | Answer |
 |---|---|
-| "Where's the agent?" | Show the panel: goal → plan → tools → re-plan on a correction or a completed task. |
-| "Isn't this myScheme?" | myScheme matches; Thunai prevents rejection, diagnoses stopped payments, prepares packs and appeals, for the whole family. |
-| "How do you count trips saved?" | Section 9 formula; it's an assumption, stated openly. |
-| "Who updates the rules?" | JSON rule files with source + last-verified date, editable by a helper. Next: AI drafts updates from new government orders, and a human verifies them. |
-| "Is 'M. Kavya' really rejected?" | It's a **risk flag**, not a rejection; mismatches are a known cause of DBT failure, and fixing them early is cheap. |
-| "Can it see government records?" | No, by design. It gives the likely cause + the official tool to confirm it. |
-| "Will an illiterate farmer use it?" | They don't need to. Their daughter or an NSS or e-Sevai helper runs it in Tamil. |
-| "Does it solve everything?" | No. The family still visits the office once, prepared; the department decides; 4–6 schemes in the prototype. |
+| "Where's the agent?" | The activity log: goal → plan → actions → re-plan, and follow-up actions it takes on its own. |
+| "How do you know the AI is right?" | Two models must agree and quote the user's words; code checks the numbers; if they disagree it asks. Tested: 0 wrong facts. And the AI never decides eligibility. |
+| "Isn't this myScheme?" | myScheme matches. Thunai prevents rejection, fixes documents, drafts letters, diagnoses stopped payments and follows up, for the whole family. |
+| "Does it send SMS?" | It prepares them in an outbox, ready for an SMS provider; WhatsApp share works today. We didn't pay for an SMS gateway in a hackathon. |
+| "Why a PIN, not an OTP?" | Real OTP SMS costs money, and we teach people never to share an OTP. In production: the government SMS gateway. |
+| "Are those real documents?" | No: sample cards marked SAMPLE, with no numbers. Thunai never reads or stores real IDs. |
+| "Does it apply for me?" | It prepares everything; the family or helper submits on the official site. The department decides. |
+| "Who updates the rules?" | JSON rule files with source and checked date; the source check flags changed pages for a human to review. |
+| "Can it see government records?" | No, by design. It gives the most likely cause and the official tool to confirm it. |
 
 ---
 
 ## 14. Why this wins
-1. **It addresses the real loss** (rejections and stopped payments); most teams will build discovery.
-2. **Visibly agentic:** goal → plan → act → **live re-planning** → human approval.
-3. **A memorable visual:** the Consistency Matrix. **Measurable impact:** ₹ unlocked and trips saved, with an open formula.
-4. **Responsible AI:** rules decide, consent, no sensitive IDs, a human approves.
-5. **Local insight:** a Tamil name, Tamil-first, names with initials, Magalir Urimai, e-Sevai, NSS.
-6. **Honest scope:** it knows what it doesn't solve.
+1. **The whole journey:** it addresses the real loss (rejections and stopped payments), not just discovery.
+2. **Visibly agentic:** live re-planning **and** follow-up on its own.
+3. **Accurate by design:** rules decide, two AIs agree, a human approves.
+4. **Memorable moments:** Revathi's name conflict, the helper approving a letter, "6 → 2" visits.
+5. **Local insight:** Tamil first, Tamil voice, names with initials, Magalir Urimai, e-Sevai, NSS.
+6. **Honest scope:** says what it doesn't do (submit, see records, send real SMS).
 
 ---
 
-## 15. Rules for the day
-- **On arrival: ask an organiser for the exact Evaluation 1 time.** H1–H3 must work end to end by then; plan backwards from it.
-- Start with the **4 core schemes**; add Tamil Pudhalvan or CMCHIS only if everything else works.
-- Build H1–H5 first; stretch items only after all of them work end to end.
-- Use the **"Load Murugan family"** button on stage if typing or the conversation is slow.
-- **Stop adding features 45 min before each evaluation** and rehearse.
-- Record a backup demo video before each evaluation.
-- If the LLM intake is unstable after 30 min, switch to the fixed question flow.
-- Say "reported" + year for statistics, "to our knowledge" for uniqueness, "pilot plan" for NSS.
-- Ask the organisers whether pre-written code is allowed. Only data and design are prepared tonight.
-
-## 16. Risks and mitigations
+## 15. Risks and mitigations
 | Risk | Mitigation |
 |---|---|
-| Running out of time | Strict H1–H5 → S1–S5 order; fallbacks |
-| Wrong scheme rule in front of judges | Verify on official sites; show source links |
-| Poor Tamil from the LLM | Tamil templates for key outputs; the LLM only for conversation |
-| Wi-Fi or API failure | Ethernet cable; backup video; tested persona runs |
-| Another team with a similar idea | Thunai's name, the matrix, live re-planning, Application Pack + Doctor |
+| Running out of time | Strict order H4–H6 → F1–F3 → S1–S2, with the cut order in `04_BUILD_PLAN.md` §4a |
+| Wrong scheme rule | Official sources only; checked dates shown; unverified schemes disabled |
+| AI misreads | Two-model agreement + evidence + number checks; asks when unsure |
+| Wi-Fi or API failure | Backup AI, offline mode, instant demo families, backup video |
+| Privacy concern about login | Guest mode; phone + hashed PIN only; never IDs; one-tap delete |
 
 ---
 

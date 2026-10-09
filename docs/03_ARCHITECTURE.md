@@ -1,10 +1,20 @@
-# Stage 3: Architecture — Thunai 🔒 FINAL (v6, 9 Oct 2026)
+# Stage 3: Architecture — Thunai 🔒 FINAL (v7, 9 Oct 2026, after Evaluation 1)
+
+> **v7 changes (match `01_IDEA.md` v2 and `04_BUILD_PLAN.md` §4a):**
+> - UiPath dropped.
+> - The UI is the government-portal style.
+> - Letters: 6 kinds, drafted from templates, helper approval.
+> - The Doctor feeds the plan and the letters.
+> - Revathi sample-documents family.
+> - Name fixes go to the issuing office.
+> - New: **login + history** (`store.py`, SQLite), **SMS outbox** (`engine/notify.py`), **follow-up + re-match** (`engine/proactive.py`), **source check**, more verified schemes.
+> - Storage moves from browser-only to **SQLite for logged-in users** (guest mode is unchanged).
 
 **Goal of this design:** deliver **exactly the planned product** (Find → Fix → Follow, H1–H5, a polished mobile-first page, a live agent panel) **within ~5 hours**, with **all app code written in the hall**.
 **Runs on:** your laptop · **AI cost:** ₹0 (free tiers) · **Builders:** you + Claude Code (main session + background subagents)
 
 > **Why this design (v6) over the alternatives:**
-> - *FastAPI + one custom HTML/JS page*, not Streamlit: the users are families on **phones**; a custom page gives a mobile-first UI, a smooth agent-panel replay, an editable family card, "saved on this phone" (localStorage) and a polished look that stands out to judges. Streamlit's reload model fights all four.
+> - *FastAPI + one custom HTML/JS page*, not Streamlit: the users are families on **phones**; a custom page gives a mobile-first UI, a smooth agent-panel replay, an editable family card, saved progress (SQLite for logged-in users) and a polished look that stands out to judges. Streamlit's reload model fights all four.
 > - *Backend first, UI last (per evaluation phase):* the backend for each phase is finished and tested before its UI is built, so the UI sits on real, tested data: no mocks, no rework. The UI follows the final design in `07_UI_UX_BRIEF.md`.
 > - *Compliance:* everything prepared tonight is design or research (`docs/`, `data/`). All code is written during the event; `prep/` is never used by the app (§13).
 
@@ -17,10 +27,10 @@
 | **Learns the situation through conversation** | Whole-family interview; live family card; tap a value to correct it → re-plan | `llm.py` → `update_facts`, `engine/questions.py`, `engine/facts.py` | H1 |
 | **Checks eligibility against scheme rules** | Scheme cards ✅❓❌, rule quoted, official source, ₹ unlocked | `engine/rules.py` + `data/schemes.json` | H2 |
 | **Lists the missing documents** | Missing documents + where to get them; Consistency Matrix 🟢🟡🔴 | `engine/documents.py` + `data/documents.json` | H4 |
-| **Prepares the application** | Application Pack (pre-filled, printable); appeal letter → helper approves → print | `engine/letters.py`, helper queue | H5 |
-| **Tracks pending actions** | Fix plan by office with Done ✓ (saved on the phone); re-plan on Done; Rejection Doctor; (S1) ⏩ proactive | `engine/documents.py`, `engine/doctor.py`, localStorage, `/api/simulate` | H4, H5, S1 |
+| **Prepares the application** | Application pack + 5 letters (name correction, bank linking, complaint, KMUT appeal, pension petition) → DRAFT → helper approves → print | `engine/letters.py`, `templates/letter.html`, helper queue | H5 |
+| **Tracks pending actions** | Fix plan by office with Done (re-plan on Done); Doctor adds its fix to the plan; login + history; SMS outbox; "15 days later" follow-up; new-scheme re-match | `engine/documents.py`, `engine/doctor.py`, `store.py`, `engine/notify.py`, `engine/proactive.py` | H4, H5, F1–F3 |
 
-All six are met by must-build pieces H1–H5.
+All six are met by H1–H6; F1–F3 strengthen "tracks pending actions".
 
 ---
 
@@ -37,13 +47,13 @@ All six are met by must-build pieces H1–H5.
 ## 3. System diagram
 ```
 ┌────────────────────────────── Browser: one custom page (mobile-first) ──────────────────────────────┐
-│ Top bar: Thunai · TA/EN · consent · Load Murugan/Meena/Lakshmi · ⏩ (S1) · Clear                     │
+│ Header: Thunai · TA/EN · Login/History · Start over │ Navy bar: Murugan · Revathi · Meena · Lakshmi │
 │ ┌─── Chat 🎤 🔊 ─────┐ ┌──── Family card + Results ─────────────┐ ┌──── Agent panel ────────────┐  │
 │ │ messages + input    │ │ family card (tap to edit)               │ │ 🎯 GOAL                       │  │
 │ │                     │ │ scheme cards ✅❓❌ · ₹ meter           │ │ 📋 PLAN ✓ ✓ ◻                 │  │
 │ │                     │ │ tabs: Fix · Doctor · Letters · Helper   │ │ 🧠 DECIDED actions + reason   │  │
 │ └─────────────────────┘ └─────────────────────────────────────────┘ │ 🔧 TOOL · 🔁 RE-PLAN · 🔒     │  │
-│ localStorage: facts + tasks (plan saved only on this phone)          └──────────────────────────────┘  │
+│ Guest: session only · Logged in: chats saved in SQLite (thunai.db)   └──────────────────────────────┘  │
 │ Phone: the same page as tabs (Chat · Family · Results · Fix · Agent)                                   │
 └──────────────▲───────────────────────────────────────────────────────────────┬──────────────────────┘
                │ JSON {events[], snapshot, reply}  (UI replays events ~250 ms apart)  │ JSON POST
@@ -58,7 +68,9 @@ All six are met by must-build pieces H1–H5.
 │     ④ RE-PLAN   engine.diff(old, new) ─► 🔁 events                                                       │
 │     ⑤ RESPOND   ack + changes + next question (verified TA/EN)                                          │
 │  ENGINE engine/*.py (pure Python, deterministic) ◄── data/*.json (researched, official sources)         │
-│  Sessions: in-memory {facts, history, tasks, helper_queue, last_snapshot}                               │
+│  LETTERS engine/letters.py (templates, no AI) → helper queue → approve → /letter/{id} printable          │
+│  FOLLOW  store.py (users, chats, outbox in SQLite) · engine/notify.py (SMS text) · engine/proactive.py   │
+│  Sessions: in-memory {facts, tasks, doctor, case, helper_queue, snapshot}; saved per user when logged in │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -77,13 +89,15 @@ All six are met by must-build pieces H1–H5.
 | Frontend | One `index.html` + vanilla `app.js` + `style.css` | No build step; full control of the "Two faces" design | — |
 | Styling | **Tailwind Play 3.4.17**, local file in `vendor/` | Fast styling, works offline | ✅ saved |
 | Tamil font | **Nirmala UI** (Windows system font) | Renders Tamil well, offline | ✅ installed |
-| Letters / pack | HTML templates → browser **Print / Save as PDF** | No PDF library | — |
-| Storage | Server memory + browser **localStorage** | No database; plan stays on the phone | — |
+| Letters / pack | `templates/letter.html` + `engine/letters.py` → browser **Print / Save as PDF** | No PDF library; deterministic text, so names and numbers are exact | ✅ |
+| Storage | Server memory (guest) + **SQLite** via Python's built-in `sqlite3` (`thunai.db`, gitignored) | No install, no server; users, chats, outbox | — |
+| PIN hashing | `hashlib.pbkdf2_hmac` + random salt (standard library) | PIN never stored in plain text | — |
+| SMS | **Outbox only** (`config.SMS_PROVIDER = None`) + `wa.me` share link | Real SMS needs money + DLT registration | — |
 | Tests | **pytest** | Clear pass/fail for engine, API, accuracy and modules | ✅ 9.1 |
 | Version control | **git** | Checkpoint commits, instant rollback | ✅ 2.55 |
 | Dev | VS Code + **Claude Code**; Chrome DevTools device mode (phone view) | Build + mobile testing | ✅ Chrome installed |
 | Backup video | Xbox Game Bar (`Win + Alt + R`) or OBS | Demo safety net | built in |
-| Robot (S5, optional) | **Playwright** | Fills a mock e-Sevai form for the RPA story | not installed (optional) |
+| Screenshots / UI checks | **Playwright** with the installed Chrome | Verifies the pages during the build (not part of the app) | ✅ |
 | **Python packages** | `fastapi uvicorn pydantic groq google-genai edge-tts pytest` | | ✅ all installed |
 
 **Not used, and why:** local Hugging Face models (IndicWhisper / IndicTTS) need PyTorch (~2 GB) and run 10–30 s per sentence on this laptop's CPU, so they're on the **roadmap** for a private, government-hosted version. Browser Web Speech API: Chrome-only and untested for Tamil here; Whisper is measured. Paid APIs: not affordable.
@@ -111,6 +125,7 @@ scheme-sathi/
 ├── agent.py            # handle(): perceive → decide → act → recompute → diff → reply; events
 ├── pii_guard.py        # removes Aadhaar-like / account-like numbers before any AI call
 ├── voice.py            # /api/stt (Groq Whisper) + /api/tts (edge-tts, MP3 cache in tts_cache/)
+├── store.py            # SQLite: users (phone, PIN hash, role), chats, outbox; delete my data
 ├── amounts.py          # deterministic Tamil/English number parser (cross-check for the AI)
 ├── accuracy.py         # two-model agreement, evidence check, range checks → accepted / ask
 ├── engine/
@@ -120,11 +135,12 @@ scheme-sathi/
 │   ├── documents.py    # has-doc, name check, matrix, missing docs, fix plan by office, trips
 │   ├── questions.py    # next question (TA/EN)
 │   ├── doctor.py       # decision-tree walk
-│   ├── letters.py      # Application Pack + appeal (TA/EN HTML)
-│   └── proactive.py    # (S1) ⏩ 15 days later
-├── templates/          # letter HTML templates (Application Pack, appeals)
+│   ├── letters.py      # suggestions + 6 letter kinds (TA/EN HTML), DRAFT until approved
+│   ├── notify.py       # summary SMS text (Tamil/English), outbox messages
+│   └── proactive.py    # "15 days later" reminders, escalation; re-match after a scheme change
+├── templates/          # letter.html (A4 page, DRAFT watermark, Print after approval)
 ├── static/             # index.html · app.js · style.css · tailwind (local) — built last in each phase
-├── tests/              # test_engine.py · test_api.py · test_modules.py (written in the hall)
+├── tests/              # test_engine.py · test_api.py · test_understand.py (live) · test_phase2.py
 ├── data/               # researched scheme rules (official sources)
 ├── docs/               # design: 01 idea · 02 data · 03 architecture · 04 build plan · 05 prompts & pitch · 06 contracts
 ├── vendor/             # third-party library files (Tailwind Play 3.4.17, MIT), for offline use
@@ -235,27 +251,35 @@ conflicts) → missing documents · name matrix · fix plan by office · trips {
 | `POST /api/chat` `{session_id, text, lang}` | `{events, snapshot, reply}` |
 | `POST /api/facts` `{session_id, path, value}` | `{events, snapshot}` |
 | `POST /api/task` `{session_id, task_id, done}` | `{events, snapshot}` |
-| `POST /api/doctor` `{session_id, entry_id?, answer?}` | `{events, step}` |
-| `POST /api/letter` `{session_id, kind, member_id?}` | `{draft}` → `GET /letter/{id}` printable page |
-| `GET /api/helper/queue` · `POST /api/helper/approve` | `{items}` · `{draft}` |
-| `POST /api/demo/{persona}` (`?direct=1` = no AI) | `{events, snapshot, reply}` |
-| `POST /api/simulate` (S1) | `{events}` |
-| `POST /api/stt` (multipart audio) | `{text, ms}` |
-| `POST /api/tts` `{text, lang}` | `audio/mpeg` (cached) |
+| `POST /api/doctor` `{session_id, entry_id?, answer?}` | `{events, snapshot, step, suggested_letters, drafts}` |
+| `POST /api/letter` `{session_id, kind, member_id?, doc_id?}` | `{events, snapshot, draft}` → `GET /letter/{id}` printable page |
+| `GET /api/helper/queue?session_id=` · `POST /api/helper/approve {draft_id, helper_name}` | `{items}` · `{events, draft}` |
+| `GET /api/sample_docs/{persona}` | `{cards}` (SAMPLE, no numbers) |
+| `POST /api/demo/{persona}` (`?live=1` = through the AI) | `{events, snapshot, reply}` |
+| `POST /api/stt` (multipart audio) · `POST /api/tts {text, lang}` | `{text, ms}` · `audio/mpeg` (cached) |
+| `POST /api/auth/register` · `/login` · `/logout` | `{token, user}` |
+| `GET /api/history` · `GET /api/history/{id}` · `DELETE /api/me` | chats list · reopen a chat · delete all my data |
+| `POST /api/sms/summary` · `GET /api/outbox` | outbox message · messages |
+| `POST /api/simulate {session_id, days}` · `POST /api/rematch` | follow-up events · re-match events |
+| `GET /api/admin/check_sources` (helper, stretch) | per scheme: unchanged / changed: needs review / unreachable |
+
+Every session response also carries `suggested_letters` and `drafts`, so the UI never guesses which letters apply.
 
 ---
 
 ## 9. Screens
 | Area | Contents | Piece |
 |---|---|---|
-| Top bar | Thunai · TA/EN · consent (first visit) · Load Murugan / Meena / Lakshmi · Clear | H1 |
+| Header + navy bar | Thunai · TA/EN · Login / History · Start over · demo families (Murugan, Revathi, Meena, Lakshmi) | H1, F1 |
 | Chat | Messages + input; 🎤 hold-to-talk + 🔊 speaker toggle (voice mode, B5) | H1 / Eval 2 |
 | Family card | Members + key facts; tap a value to correct → re-plan | H1 |
 | Results | Scheme cards (✅❓❌ · rule · source · "checked 9 Oct 2026" · conflict note) · **₹ meter** | H2 |
-| Agent panel | GOAL · PLAN ticks · 🧠 DECIDED · 🔧 TOOL · 🔁 RE-PLAN (highlighted) · 🔒 · provider + time | H3 |
-| Fix tab | **Consistency Matrix** · missing documents · **fix plan by office** with Done ✓ · **trips 6 → 2** | H4 |
-| Doctor tab | Entry buttons → Yes / No / Don't know → outcome (cause · verify · fix) | H5 |
-| Letters + Helper | Application Pack / appeal → DRAFT → helper Approve → Print | H5 |
+| Agent activity | Plan stepper + text-labelled log (Goal, Plan, Action, Decision, Re-plan, Follow-up, Privacy) | H3 |
+| Fix tab | Sample document cards (Revathi) · name check table · missing documents · fix plan by office with Done · visits saved | H4 |
+| Doctor tab | 4 entry buttons → Yes / No / Don't know → outcome (cause · check in 1 minute · fix steps · Draft letter) | H5 |
+| Letters + Helper | Suggested letters → DRAFT preview → helper Approve → Print | H5 |
+| Follow | SMS outbox · Send summary · Share on WhatsApp · "Simulate 15 days later" | F2, F3 |
+| Login + History | Phone + PIN (consent), guest, previous conversations, delete my data; helper login | F1 |
 
 Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 
@@ -264,9 +288,12 @@ Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 ## 10. Privacy & safety
 - **PII guard** before every AI call (12-digit and 9–18-digit numbers removed) → 🔒 event.
 - No Aadhaar / bank / OTP in any question.
-- Consent: *"We only use what you tell us. We never ask for Aadhaar, bank numbers or OTPs. Your answers are sent to a free AI service to understand them. Your plan is saved only on this phone; tap Clear to delete it."*
+- Consent: *"We never ask for an Aadhaar number, bank number or OTP. Your answers are sent to a free AI service to understand them. If you log in, your family's details are saved under your phone number; you can delete them at any time."*
+- **Login data:** phone number + PBKDF2-hashed PIN + family facts + chats. Never Aadhaar, bank or OTP. `DELETE /api/me` removes everything. Guest mode keeps nothing after the session.
+- **Sample documents** are data cards marked SAMPLE with no ID numbers; Thunai never reads or stores real documents.
+- **SMS:** outbox only; messages contain no ID numbers and always say "never share your OTP".
 - Free tiers may train on prompts → no ID numbers sent; demo families fictional. Pitch: "Production would use a paid or government-hosted model; the AI is isolated in one file."
-- Letters stay DRAFT until a helper approves; the agent never submits anything.
+- Letters stay DRAFT until a helper approves; account numbers are left blank to be written by hand; the agent never submits anything.
 
 ---
 
@@ -279,7 +306,8 @@ Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 | AI extracts a wrong fact | Visible on the card → tap → correct → re-plan |
 | Invalid JSON / unknown path or action | Dropped by guards → next provider → offline mode |
 | Backend crash | Restart Uvicorn (5 s) → backup video |
-| Letter template missing | Button hidden |
+| Letter does not apply | Not suggested; the API refuses it (400), so no empty letter is shown |
+| SQLite or login error | Guest mode keeps working (demo buttons need no login) |
 | Wi-Fi drops | Ethernet → hotspot → offline mode → backup video (Tailwind is local) |
 
 ---
@@ -291,9 +319,12 @@ Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 | **H2** Scheme cards + ₹ | `engine/rules.py`, Results UI | 1 |
 | **H3** Agent panel | `agent.py` events, panel UI | 1 |
 | **H4** Fix tab | `engine/documents.py`, Fix tab UI | 2 |
-| **H5** Doctor + Pack + appeal + helper + print | `engine/doctor.py`, `engine/letters.py`, tabs UI | 2 |
-| **Voice mode** 🎤 + 🔊 (must-have for Eval 2) | `voice.py`, mic + speaker UI | 2 |
-| **Stretch** S1 ⏩ proactive · S3 bank letter · S4 WhatsApp share · S5 🤖 robot form-fill | `engine/proactive.py`, `app.js`, `letters.py`, `robot/` | after H1–H5 |
+| **H5** Doctor + pack + letters + helper + print | `engine/doctor.py`, `engine/letters.py`, `templates/letter.html`, tabs UI | 2 |
+| **H6** Voice | `voice.py`, mic + speaker UI | 2 |
+| **F1** Login + history | `store.py`, login UI | 2 |
+| **F2** SMS outbox + summary | `engine/notify.py`, outbox UI | 2 |
+| **F3** Follow-up + re-match | `engine/proactive.py`, "15 days later" button | 2 |
+| **S1–S2** More schemes · source check | `data/schemes.json`, `/api/admin/check_sources` | stretch |
 
 ---
 
@@ -307,9 +338,7 @@ Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 ## 14. Setup status
 - [x] Gemini + Groq keys saved · [x] fastapi, uvicorn, google-genai, groq installed · [x] provider check passed on this laptop · [x] git 2.55 available · [x] Tailwind saved in `vendor/` (offline)
 - [ ] Morning: re-run `prep/tools/test_providers.py` (connectivity check only); fix model names in `config.py` if needed
-- [ ] Optional tonight (for S5): `pip install playwright` + `playwright install chromium`
 - [ ] Charger · **Ethernet cable** · phone hotspot
 
-## 15. UiPath (RPA) and remaining risk
-- **UiPath e-Sevai form-filler robot** (spec: `docs/08_UIPATH_ROBOT.md`): built by a teammate in UiPath Studio in parallel. Thunai writes `handoff/application.json` after helper approval and serves `mock_esevai.html`; the robot fills the form on screen and stops before Submit; Thunai shows a 🤖 event from `handoff/robot_result.json`. Story: **"agent decides → UiPath robot acts → human approves."**
-- **Risk:** it depends on a teammate having UiPath Studio installed and knowing the basics. Fallback: Playwright robot (S5) with the same JSON and form, or the backup video plus the roadmap line.
+## 15. Dropped: UiPath robot
+The UiPath e-Sevai form-filler (`docs/08_UIPATH_ROBOT.md`) was **dropped after Evaluation 1** to keep the team on the core journey. Thunai **prepares** the application pack and letters; the family or helper **submits** on the official site. Roadmap line for judges: "an RPA robot could fill the e-Sevai form from the approved pack, still stopping before Submit for a human."

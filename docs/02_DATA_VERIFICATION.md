@@ -1,5 +1,11 @@
 # Stage 2: Scheme Data — FINAL ✅ 🔒 LOCKED (9 Oct 2026)
 
+> **v2 additions (after Evaluation 1):**
+> - `personas.json` gains **Revathi** (sample documents: name forms "Revathi Sekar" / "S. Revathi" / "REVATHI S", missing death certificate, unlinked bank), plus `applicant_name` (Meena) and the rejection reason (Lakshmi).
+> - **Adding schemes (S1):** a new scheme is enabled only with an **official source + checked date**, with rules copied from the official text, and with one ELIGIBLE and one NOT_ELIGIBLE test; otherwise `enabled: false`.
+> - Candidates: Tamil Pudhalvan, TN differently-abled assistance, TN unmarried / deserted women pension, PMMVY.
+> - **Source check (S2):** official pages are hashed; a change marks the scheme "needs review" for a human, and rules are never edited automatically.
+>
 > Locked. Data changes only if an official source contradicts it; after any change, re-run `python -I tools/verify_data.py data` (must stay ALL PASS).
 
 **Completed:** 9 Oct 2026 · **Tests:** 31 / 31 pass (`python -I tools/verify_data.py data`) · **Cross-references:** all resolve (`python -I tools/check_links.py data`)
@@ -11,7 +17,7 @@
 | `data/documents.json` | Offices (with trip/online flag), documents (+ where to get each), `doc_fact_map`, tasks (PM-KISAN eKYC), **name-check algorithm + 6 test cases**, **trips algorithm** |
 | `data/doctor_tree.json` | 4 Rejection Doctor trees: KMUT payment stopped, KMUT rejected, PM-KISAN instalment stopped, pension rejected |
 | `data/questions.json` | Question bank (Tamil + English) in ask order; every rule field is covered by a question or derived |
-| `data/personas.json` | Murugan family, Meena, Lakshmi Paati: Tamil + English scripted answers ("Load Murugan family" button), final facts, expected results |
+| `data/personas.json` | Murugan family, Meena, Lakshmi Paati, **Revathi (sample documents)**: scripted answers, final facts, sample document cards (marked SAMPLE, no numbers), expected results |
 | `tools/verify_data.py` | Reference implementation of every algorithm, used to test the data (verdicts, totals, derived facts, name check, trips, doctor paths, edge cases, question coverage) |
 | `tools/check_links.py` | Checks every document / office / task / letter / tree reference |
 

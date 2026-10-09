@@ -1,4 +1,8 @@
-# UiPath Robot Spec — "e-Sevai Form Filler" 🤖
+# UiPath Robot Spec — "e-Sevai Form Filler" 🤖 — ❌ DROPPED (9 Oct 2026, after Evaluation 1)
+
+> **Not built.** The team dropped the UiPath robot to focus on the core journey (letters, Doctor, documents, follow-up).
+> Thunai **prepares** the application pack and letters; the family or helper **submits** on the official site.
+> This spec is kept only as a **roadmap** item: "an RPA robot could fill the e-Sevai form from the approved pack, stopping before Submit for a human." See `03_ARCHITECTURE.md` §15.
 
 **Built by:** one teammate in **UiPath Studio (Community)**, in parallel with the main build · **Demo:** Eval 2
 **Story for the jury:** *"The AI agent decides, the UiPath robot does the paperwork, and a human approves."*
