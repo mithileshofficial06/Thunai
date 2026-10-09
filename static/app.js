@@ -169,7 +169,7 @@ function render(snap, animate) {
 }
 
 function renderPlanSteps(steps) {
-  $("#planSteps").innerHTML = steps.map((s) => `<span class="${s.done ? "done" : ""}">${s.done ? "✓" : "◻"} ${s[state.lang]}</span>`).join(" · ");
+  $("#planSteps").innerHTML = steps.map((s, i) => `<span class="${s.done ? "done" : ""}">${s.done ? "✓" : i + 1} ${esc(s[state.lang])}</span>`).join("");
 }
 
 function relLabel(m) {

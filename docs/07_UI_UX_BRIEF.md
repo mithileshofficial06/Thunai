@@ -1,5 +1,13 @@
 # UI/UX Design Brief — Thunai (துணை) 🔒 FINAL
 
+> **Update (9 Oct, during the build): visual style changed to clean neo-brutalism** at the team's request.
+> Thick 3px black borders, hard offset shadows (no blur), square corners, flat bold palette
+> (paper #F4F1E8, ink #0A0A0A, signal yellow #FFE14D, mint #9AF2C8, sky #A5D8FF, pink #FFB3C7, status green/amber/red),
+> heavy uppercase headings (Arial Black / Segoe UI Black, Nirmala UI for Tamil), monospace labels (Consolas),
+> tactile press-down buttons, and the agent panel as a black terminal with yellow re-plan blocks. No images.
+> Layout, components, microcopy, accessibility rules and the "two faces" idea (calm family side vs. the agent
+> working underneath) below are unchanged; only the colours/shape language changed. Implemented in `static/style.css`.
+
 **Chosen design: "Two faces".** Built **last in each phase**, on the finished backend: B3 (chat, family card, scheme cards, ₹, agent panel) and B5 (Fix, Doctor, Letters, Helper tabs).
 
 **Why this design was chosen for Thunai:**
