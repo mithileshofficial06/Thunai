@@ -158,3 +158,27 @@ def test_revathi_name_letter_and_fix_tick_replans():
     assert cells["bank_passbook"] == "Revathi Sekar"  # now printed as on Aadhaar
     tasks = [x["task_id"] for o in t["snapshot"]["plan"] for x in o["tasks"]]
     assert "r1:fix_name:bank_passbook" not in tasks
+
+
+# --------------------------------------------------------- follow-up + voice
+def test_summary_sms_goes_to_outbox_with_otp_warning():
+    r = load("murugan_family")
+    m = client.post("/api/sms/summary", json={"session_id": r["session_id"], "lang": "en"}).json()["message"]
+    assert "30,000" in m["text"] and "OTP" in m["text"] and len(m["text"]) <= 480
+    msgs = client.get("/api/outbox", params={"session_id": r["session_id"]}).json()["messages"]
+    assert msgs[0]["id"] == m["id"] and msgs[0]["status"] == "outbox"
+
+
+def test_simulate_15_days_reminds_and_escalates_to_helper():
+    r = load("murugan_family")
+    s = client.post("/api/simulate", json={"session_id": r["session_id"], "days": 15}).json()
+    assert s["events"] and all(e["type"] == "autonomous" for e in s["events"])
+    assert any(i["kind"] == "escalation" for i in s["drafts"])
+    again = client.post("/api/simulate", json={"session_id": r["session_id"], "days": 15}).json()
+    assert sum(i["kind"] == "escalation" for i in again["drafts"]) == 1  # not duplicated
+    assert len(client.get("/api/outbox", params={"session_id": r["session_id"]}).json()["messages"]) >= 2
+
+
+def test_voice_routes_reject_empty_input():
+    assert client.post("/api/tts", json={"text": "  "}).status_code == 400
+    assert client.post("/api/stt", files={"audio": ("a.webm", b"", "audio/webm")}).status_code == 400

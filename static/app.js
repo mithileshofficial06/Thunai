@@ -114,6 +114,7 @@ async function send(text, fromVoice = false) {
   bubble("user", text);
   const wait = bubble("agent", t("thinking"), "muted");
   try {
+    if (typeof p2 !== "undefined" && p2.fromVoice) { fromVoice = true; p2.fromVoice = false; }
     const r = await api("/api/chat", { session_id: state.sid, text, lang: state.lang, from_voice: fromVoice });
     wait.remove();
     handle(r);
@@ -122,10 +123,11 @@ async function send(text, fromVoice = false) {
 
 function handle(r, showReply = true) {
   state.unconfirmed = r.unconfirmed || [];
+  if (typeof takeExtras === "function") takeExtras(r);
   enqueue(r.events || []);
   render(r.snapshot, true);
   renderAsk(r.pending_ask || []);
-  if (showReply && r.reply) { const text = replyText(r.reply); if (text) bubble("agent", text); }
+  if (showReply && r.reply) { const text = replyText(r.reply); if (text) { bubble("agent", text); if (typeof speak === "function") speak(text); } }
   save();
 }
 
@@ -179,6 +181,7 @@ function render(snap, animate) {
   renderFacts(snap.facts);
   renderSchemes(snap.verdicts, animate ? prev : null);
   renderSummary(snap, animate ? prev : null);
+  if (typeof renderPhase2 === "function") renderPhase2();
 }
 
 function relLabel(m) {
@@ -320,6 +323,7 @@ async function startSession(facts) {
   $("#agentLog").innerHTML = "";
   $("#chatLog").innerHTML = "";
   state.snap = null;
+  if (typeof p2 !== "undefined") { p2.doctor = null; p2.drafts = []; p2.suggested = []; p2.outbox = []; p2.cards = []; }
   handle(r, false);
   const q = r.snapshot.next_question;
   bubble("agent", r.snapshot.facts.members.length
@@ -328,15 +332,19 @@ async function startSession(facts) {
 }
 
 async function loadPersona(name) {
-  try { await startSession(); handle(await api(`/api/demo/${name}?session_id=${state.sid}`)); }
+  try {
+    await startSession();
+    const hasP2 = typeof p2 !== "undefined";
+    if (hasP2) { p2.cards = []; p2.outbox = []; p2.doctor = null; }
+    const r = await api(`/api/demo/${name}?session_id=${state.sid}`);
+    if (hasP2) { try { p2.cards = (await apiGet(`/api/sample_docs/${name}`)).cards; } catch (e) { p2.cards = []; } }
+    handle(r);
+    if (hasP2) showPanel(name === "meena" || name === "lakshmi_paati" ? "doctor" : "fix", name !== "murugan_family");
+  }
   catch (e) { toast(`${t("warn")} ${e.message}`); }
 }
 
 function setupTabs() {
-  $$("#phase2Tabs button").forEach((b) => b.onclick = () => {
-    $$("#phase2Tabs button").forEach((x) => x.classList.toggle("active", x === b));
-    ["fix", "doctor", "letters", "helper"].forEach((p) => $(`#panel-${p}`).classList.toggle("hidden", p !== b.dataset.panel));
-  });
   const show = (name) => {
     $$("[data-tab]").forEach((el) => el.classList.toggle("show", el.dataset.tab === name || (["family", "schemes"].includes(name) && el.id === "col-main")));
     $$(".bottom-tabs button").forEach((x) => x.classList.toggle("active", x.dataset.show === name));

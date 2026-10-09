@@ -1,14 +1,18 @@
 """Thunai web app: FastAPI routes (plain JSON) + the static single-page UI."""
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+import time
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import agent
 import config
+import voice
 from engine import doctor as doctor_engine
+from engine import notify, proactive
 
 app = FastAPI(title="Thunai — Scheme Sathi agent")
 
@@ -47,6 +51,21 @@ class LetterIn(BaseModel):
     kind: str
     member_id: Optional[str] = None
     doc_id: Optional[str] = None
+
+
+class SimIn(BaseModel):
+    session_id: str
+    days: int = 15
+
+
+class SummaryIn(BaseModel):
+    session_id: str
+    lang: str = "ta"
+
+
+class TtsIn(BaseModel):
+    text: str
+    lang: str = "ta"
 
 
 class ApproveIn(BaseModel):
@@ -189,6 +208,69 @@ def demo(persona: str, session_id: Optional[str] = None, live: bool = False):
         s, events = agent.new_session()
     e, snapshot, reply = agent.load_persona(s, persona, direct=direct)
     return _out(s, events + e, snapshot, reply)
+
+
+# ------------------------------------------------------------------ voice
+@app.post("/api/stt")
+def stt(audio: UploadFile = File(...), lang: str = Form("ta")):
+    data = audio.file.read()
+    if not data:
+        raise HTTPException(400, "empty audio")
+    try:
+        return voice.transcribe(data, audio.filename or "speech.webm", lang)
+    except Exception as exc:  # network / key problems: the UI falls back to typing
+        raise HTTPException(503, f"speech service unavailable: {str(exc)[:120]}") from exc
+
+
+@app.post("/api/tts")
+def tts(body: TtsIn):
+    if not body.text.strip():
+        raise HTTPException(400, "empty text")
+    try:
+        return Response(voice.speak(body.text, body.lang), media_type="audio/mpeg")
+    except Exception as exc:
+        raise HTTPException(503, f"voice service unavailable: {str(exc)[:120]}") from exc
+
+
+# ------------------------------------------------------------ follow-up
+OUTBOX = []  # prototype: messages are prepared here; no real SMS is sent
+
+
+def _outbox_add(session_id, text, reason):
+    msg = {"id": len(OUTBOX) + 1, "session_id": session_id, "to": "(not sent: prototype outbox)", "text": text,
+           "reason": reason, "created": time.strftime("%Y-%m-%d %H:%M:%S"), "status": "outbox"}
+    OUTBOX.append(msg)
+    return msg
+
+
+@app.post("/api/sms/summary")
+def sms_summary(body: SummaryIn):
+    s = _session(body.session_id)
+    msg = _outbox_add(s["id"], notify.summary_sms(s["snapshot"], body.lang if body.lang in ("ta", "en") else "ta"), "summary")
+    events = [agent.ev("tool", "", "Prepared a summary SMS in the outbox (benefit, next offices, never share your OTP)",
+                       "சுருக்கக் குறுஞ்செய்தி outbox-இல் தயாரானது (நன்மை, அடுத்த அலுவலகங்கள், OTP எச்சரிக்கை)")]
+    return {"events": events, "message": msg}
+
+
+@app.get("/api/outbox")
+def outbox(session_id: Optional[str] = None):
+    msgs = [m for m in OUTBOX if session_id is None or m["session_id"] == session_id]
+    return {"messages": list(reversed(msgs))}
+
+
+@app.post("/api/simulate")
+def simulate(body: SimIn):
+    """'N days later': the agent follows up on its own (reminders, deadlines, escalation)."""
+    s = _session(body.session_id)
+    result = proactive.simulate(s["snapshot"], agent.helper_queue(s["id"]), max(1, min(body.days, 60)))
+    events = result["events"]
+    for e in events:
+        d = e.get("detail") or {}
+        if d.get("escalate") and all(i.get("key") != "follow:escalation" for i in s["helper_queue"]):
+            agent._queue_escalation(s, d.get("reason_en", "Task open too long"), d.get("reason_ta") or d.get("reason_en", ""), "follow:escalation")
+    for m in result["messages"]:
+        _outbox_add(s["id"], m["text"], m["reason"])
+    return _out(s, events, s["snapshot"])
 
 
 # Mounted last so /api routes take priority.
