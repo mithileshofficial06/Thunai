@@ -4,6 +4,7 @@ One AI call per turn (llm.py, two models in parallel), checked by accuracy.py.
 Every step is returned as an event for the agent panel (shape: docs/06_CONTRACTS.md §2).
 """
 import copy
+import datetime as dt
 import uuid
 
 import accuracy
@@ -12,11 +13,13 @@ import llm
 import pii_guard
 from engine import diff, recompute
 from engine import doctor as doctor_engine
-from engine.data import PERSONAS
-from engine.documents import task_effect
+from engine import letters
+from engine.data import OFFICES, PERSONAS
+from engine.documents import _bring, is_trip, office_info, task_effect
 from engine.facts import empty_facts, patch
 
 SESSIONS = {}
+DRAFTS = {}  # draft_id -> internal draft (session id + frozen inputs); public fields via _public()
 
 
 # ------------------------------------------------------------------ helpers
@@ -30,7 +33,7 @@ def new_session(saved_facts=None):
     facts.setdefault("tasks", {})
     snap = recompute(facts)
     session = {"id": sid, "facts": facts, "snapshot": snap, "last_question": snap["next_question"],
-               "doctor": None, "helper_queue": [], "unconfirmed": [], "pending_ask": []}
+               "doctor": None, "helper_queue": [], "unconfirmed": [], "pending_ask": [], "case": {}}
     SESSIONS[sid] = session
     return session, goal_events(session)
 
@@ -109,9 +112,173 @@ def _reply_lines(old, new, events, extra_en=None, extra_ta=None):
 def _apply_snapshot(session):
     old = session["snapshot"]
     new = recompute(session["facts"], packs_ready=any(d.get("kind") == "application_pack" for d in session["helper_queue"]))
+    _add_doctor_task(session, new)
     session["snapshot"] = new
     session["last_question"] = new["next_question"]
     return old, new
+
+
+def _applicant_name(session):
+    mid = session["case"].get("member_id")
+    m = next((x for x in session["facts"]["members"] if x.get("id") == mid), None)
+    return (m or {}).get("name") or session["case"].get("applicant_name") or ""
+
+
+def _add_doctor_task(session, snap):
+    """A Doctor outcome adds its fix to the plan, at its office (so trips include it)."""
+    d = session["doctor"]
+    if not d or d["step"]["kind"] != "outcome":
+        return
+    step = d["step"]
+    office = step["office"]
+    if office not in OFFICES:
+        return
+    tid = f"doctor:{step['node_id']}"
+    be, bt = _bring(office)
+    task = {"task_id": tid, "member_name": _applicant_name(session),
+            "short_en": step["fix_en"][0], "short_ta": step["fix_ta"][0],
+            "en": " ".join(step["fix_en"]), "ta": " ".join(step["fix_ta"]),
+            "bring_en": be, "bring_ta": bt, "kind": "fix", "done": bool(session["facts"]["tasks"].get(tid))}
+    entry = next((o for o in snap["plan"] if o["office_id"] == office), None)
+    if entry:
+        if all(t["task_id"] != tid for t in entry["tasks"]):
+            entry["tasks"].append(task)
+    else:
+        info = office_info(office)
+        entry = {"office_id": office, "office_en": info["en"], "office_ta": info["ta"], "unblocks": [], "tasks": [task]}
+        online = [i for i, o in enumerate(snap["plan"]) if o["office_id"] == "online"]
+        snap["plan"].insert(online[0] if online else len(snap["plan"]), entry)
+    if is_trip(office):
+        snap["trips"] = {"without": snap["trips"]["without"] + 1,
+                         "with": len({o["office_id"] for o in snap["plan"] if is_trip(o["office_id"])})}
+
+
+# --------------------------------------------------------------- the Doctor
+def doctor_start(session, entry_id):
+    step = doctor_engine.start(entry_id)
+    session["doctor"] = {"entry_id": entry_id, "tree": step["tree"], "path": step["path"], "step": step}
+    return [ev("tool", "", f"Started problem finder: {entry_id}", f"சிக்கல் கண்டறிதல் தொடங்கியது: {entry_id}")]
+
+
+def doctor_answer(session, reply, replan=True):
+    """Advance the Doctor; on an outcome, add its fix to the plan, suggest its letter, escalate if needed."""
+    d = session["doctor"]
+    step = doctor_engine.answer(d["tree"], d["path"], reply)
+    d.update(path=step["path"], step=step)
+    events = [ev("tool", "", f"Problem finder answer: {reply} → {step['node_id']}",
+                 f"சிக்கல் கண்டறிதல் பதில்: {reply} → {step['node_id']}")]
+    if step["kind"] == "outcome":
+        events += doctor_outcome_events(session, replan)
+    return events
+
+
+def doctor_outcome_events(session, replan=True):
+    step = session["doctor"]["step"]
+    events = [ev("decided", "", f"Most likely cause: {step['cause_en']}", f"பெரும்பாலும் காரணம்: {step['cause_ta']}",
+                 source=step.get("source"))]
+    if replan:
+        old, new = _apply_snapshot(session)
+        events += diff(old, new)
+    if step.get("draft_letter") in letters.KINDS:
+        k = letters.KINDS[step["draft_letter"]]
+        events.append(ev("plan", "", f"Suggested letter: {k[0]} (open the Letters tab to draft it)",
+                         f"பரிந்துரைக்கப்பட்ட கடிதம்: {k[1]} (கடிதங்கள் பகுதியில் வரைவு தயாரிக்கவும்)"))
+    if step.get("escalate_to_helper"):
+        key = f"doctor:{step['node_id']}"
+        if all(i.get("key") != key for i in session["helper_queue"]):
+            _queue_escalation(session, f"Problem finder: {step['cause_en']}", f"சிக்கல் கண்டறிதல்: {step['cause_ta']}", key)
+            events.append(ev("tool", "", "Sent to a human helper for review", "மனித உதவியாளரின் பரிசீலனைக்கு அனுப்பப்பட்டது"))
+    return events
+
+
+# ------------------------------------------------------- letters + helper
+def _now():
+    return dt.datetime.now().isoformat(timespec="seconds")
+
+
+def _public(item):
+    return {k: v for k, v in item.items() if not k.startswith("_")}
+
+
+def _queue_escalation(session, reason_en, reason_ta, key=None):
+    item = {"draft_id": uuid.uuid4().hex[:8], "kind": "escalation", "member_id": session["case"].get("member_id"),
+            "member_name": _applicant_name(session) or None, "status": "OPEN", "reason": reason_en,
+            "reason_en": reason_en, "reason_ta": reason_ta, "title_en": "Needs a human helper",
+            "title_ta": "மனித உதவியாளர் தேவை", "created_at": _now(), "html_url": None, "approved_by": None,
+            "key": key, "session_id": session["id"]}
+    session["helper_queue"].append(item)
+    DRAFTS[item["draft_id"]] = item
+    return item
+
+
+def letter_suggestions(session):
+    d = session["doctor"]
+    return letters.suggestions(session["facts"], session["snapshot"], d["step"] if d else None, session["case"])
+
+
+def create_letter(session, kind, member_id=None, doc_id=None):
+    """Draft a letter (only one the agent suggests for this family) and queue it for helper approval."""
+    sug = next((s for s in letter_suggestions(session) if s["kind"] == kind
+                and (member_id is None or s["member_id"] == member_id) and (doc_id is None or s["doc_id"] == doc_id)), None)
+    if sug is None:
+        raise ValueError("this letter does not apply to this family right now")
+    member_id, doc_id = sug["member_id"], sug["doc_id"]
+    for item in session["helper_queue"]:  # same letter again: reuse the existing draft
+        if (item["kind"], item.get("member_id"), item.get("doc_id")) == (kind, member_id, doc_id) and item["status"] == "DRAFT":
+            return [ev("tool", "", f"Draft already waiting for helper approval: {sug['en']}",
+                       f"வரைவு ஏற்கனவே ஒப்புதலுக்குக் காத்திருக்கிறது: {sug['ta']}")], _public(item)
+    d = session["doctor"]
+    inputs = {"facts": copy.deepcopy(session["facts"]), "snapshot": copy.deepcopy(session["snapshot"]),
+              "member_id": member_id, "doc_id": doc_id, "doctor_step": copy.deepcopy(d["step"]) if d else None,
+              "case": dict(session["case"])}
+    letters.render(kind, **inputs)  # fail now (400), not later when the helper opens it
+    member = next((m for m in session["facts"]["members"] if m.get("id") == member_id), None)
+    draft_id = uuid.uuid4().hex[:8]
+    item = {"draft_id": draft_id, "kind": kind, "member_id": member_id, "doc_id": doc_id,
+            "member_name": (member or {}).get("name") or session["case"].get("applicant_name"),
+            "status": "DRAFT", "reason": sug["reason_en"], "reason_en": sug["reason_en"], "reason_ta": sug["reason_ta"],
+            "title_en": sug["en"], "title_ta": sug["ta"], "created_at": _now(), "html_url": f"/letter/{draft_id}",
+            "approved_by": None, "session_id": session["id"], "_inputs": inputs}
+    session["helper_queue"].append(item)
+    DRAFTS[draft_id] = item
+    events = [ev("tool", "", f"Drafted: {sug['en']}{' for ' + item['member_name'] if item['member_name'] else ''}. Waiting for helper approval",
+                 f"வரைவு தயாரானது: {sug['ta']}{' — ' + item['member_name'] if item['member_name'] else ''}. உதவியாளர் ஒப்புதலுக்குக் காத்திருக்கிறது")]
+    if kind == "application_pack":
+        old, new = _apply_snapshot(session)
+        events += diff(old, new)
+    return events, _public(item)
+
+
+def helper_queue(session_id=None):
+    items = [i for i in DRAFTS.values() if session_id is None or i["session_id"] == session_id]
+    return [_public(i) for i in sorted(items, key=lambda i: i["created_at"], reverse=True)]
+
+
+def approve(draft_id, helper_name="Helper"):
+    item = DRAFTS.get(draft_id)
+    if item is None:
+        raise KeyError(draft_id)
+    if item["status"] in ("APPROVED", "REVIEWED"):
+        return [], _public(item)
+    item["status"] = "REVIEWED" if item["kind"] == "escalation" else "APPROVED"
+    item["approved_by"] = helper_name
+    item["approved_at"] = _now()
+    what = item["title_en"] + (f" for {item['member_name']}" if item["member_name"] else "")
+    what_ta = item["title_ta"] + (f" — {item['member_name']}" if item["member_name"] else "")
+    if item["kind"] == "escalation":
+        e = ev("tool", "", f"Helper {helper_name} reviewed: {item['reason_en']}", f"உதவியாளர் {helper_name} பரிசீலித்தார்: {item['reason_ta']}")
+    else:
+        e = ev("tool", "", f"Helper {helper_name} approved: {what}. Ready to print",
+               f"உதவியாளர் {helper_name} ஒப்புதல் அளித்தார்: {what_ta}. அச்சிடத் தயார்")
+    return [e], _public(item)
+
+
+def letter_page(draft_id):
+    item = DRAFTS.get(draft_id)
+    if item is None or item["kind"] == "escalation":
+        raise KeyError(draft_id)
+    letter = letters.render(item["kind"], **item["_inputs"])
+    return letters.page(letter, approved=item["status"] == "APPROVED", helper_name=item.get("approved_by"))
 
 
 # ------------------------------------------------------------------- a turn
@@ -168,24 +335,20 @@ def handle(session, text, lang="ta", from_voice=False):
             if lines:
                 events.append(ev("tool", "", "Updated facts: " + "; ".join(lines[:6]) + (" and more" if len(lines) > 6 else "")))
         elif action == "start_doctor" and dec["doctor_entry"]:
-            step = doctor_engine.start(dec["doctor_entry"])
-            session["doctor"] = {"entry_id": dec["doctor_entry"], "tree": step["tree"], "path": step["path"], "step": step}
-            events.append(ev("tool", "", f"run_doctor  {dec['doctor_entry']}", f"run_doctor  {dec['doctor_entry']}"))
+            events += doctor_start(session, dec["doctor_entry"])
+            step = session["doctor"]["step"]
             extra_en.append(step["en"]); extra_ta.append(step["ta"])
-        elif action == "doctor_answer" and session["doctor"] and dec["doctor_answer"]:
-            d = session["doctor"]
-            step = doctor_engine.answer(d["tree"], d["path"], dec["doctor_answer"])
-            d.update(path=step["path"], step=step)
-            events.append(ev("tool", "", f"doctor_step  answer: {dec['doctor_answer']} → {step['node_id']}"))
-            e2, t2 = doctor_reply(step)
+        elif action == "doctor_answer" and session["doctor"] and session["doctor"]["step"]["kind"] == "question" and dec["doctor_answer"]:
+            events += doctor_answer(session, dec["doctor_answer"], replan=False)
+            e2, t2 = doctor_reply(session["doctor"]["step"])
             extra_en += e2; extra_ta += t2
+            changed |= session["doctor"]["step"]["kind"] == "outcome"  # its fix joins the plan below
         elif action == "mark_task_done" and dec["task_done"]:
             changed |= mark_task(session, dec["task_done"], events)
         elif action == "escalate_to_helper":
             reason = dec["escalate_reason"] or "Needs a human helper"
-            session["helper_queue"].append({"draft_id": uuid.uuid4().hex[:6], "kind": "escalation", "member_name": None,
-                                            "status": "OPEN", "reason": reason})
-            events.append(ev("tool", "", f"escalate_to_helper  {reason}", f"உதவியாளரிடம் அனுப்பப்பட்டது: {reason}"))
+            _queue_escalation(session, reason, reason)
+            events.append(ev("tool", "", f"Sent to a human helper: {reason}", f"உதவியாளரிடம் அனுப்பப்பட்டது: {reason}"))
         elif action == "explain":
             for v in session["snapshot"]["verdicts"]:
                 if v["status"] != "ELIGIBLE":
@@ -231,6 +394,13 @@ def mark_task(session, task_id, events):
         return False
     for path, value in task_effect(task_id):
         session["facts"], _, _ = patch(session["facts"], path, value)
+    member_id, _, what = task_id.partition(":")
+    if what.startswith("fix_name:"):  # corrected document now carries the Aadhaar name
+        doc = what.split(":", 1)[1]
+        m = next((x for x in session["facts"]["members"] if x["id"] == member_id), {})
+        ref = (m.get("names_as_printed") or {}).get("aadhaar")
+        if ref:
+            session["facts"], _, _ = patch(session["facts"], f"member:{member_id}.names_as_printed.{doc}", ref)
     session["facts"], _, _ = patch(session["facts"], f"task:{task_id}.done", True)
     events.append(ev("tool", "", f"mark_task_done  {task_id}", f"பணி முடிந்தது: {task_id}"))
     return True
@@ -265,6 +435,8 @@ def set_task(session, task_id, done):
 def load_persona(session, name, direct=False):
     p = PERSONAS[name]
     events, reply = [], {"en": "", "ta": ""}
+    session["doctor"] = None
+    session["case"] = {k: p[k] for k in ("applicant_name", "member_id", "rejection_reason_en", "rejection_reason_ta") if k in p}
     if "facts" in p and (direct or not config.USE_LLM or "scripted_answers_ta" not in p):
         session["facts"] = copy.deepcopy(p["facts"])
         session["facts"].setdefault("tasks", {})
@@ -280,16 +452,12 @@ def load_persona(session, name, direct=False):
             events.append(ev("reply", "", f"User: {line}", f"பயனர்: {line}"))
             events += e
     if p.get("doctor_entry"):
-        step = doctor_engine.start(p["doctor_entry"])
-        session["doctor"] = {"entry_id": p["doctor_entry"], "tree": step["tree"], "path": step["path"], "step": step}
-        events.append(ev("tool", "", f"run_doctor  {p['doctor_entry']}"))
+        events += doctor_start(session, p["doctor_entry"])
         for node, ans in p.get("scripted_answers", {}).items():
             d = session["doctor"]
             if d["step"]["kind"] != "question" or d["step"]["node_id"] != node:
                 break
-            step = doctor_engine.answer(d["tree"], d["path"], ans)
-            d.update(path=step["path"], step=step)
-            events.append(ev("tool", "", f"doctor_step  {node}: {ans} → {step['node_id']}"))
+            events += doctor_answer(session, ans)
         en, ta = doctor_reply(session["doctor"]["step"])
         reply = {"en": "\n".join(([reply["en"]] if reply["en"] else []) + en),
                  "ta": "\n".join(([reply["ta"]] if reply["ta"] else []) + ta)}

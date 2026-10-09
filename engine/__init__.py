@@ -98,9 +98,13 @@ def diff(old, new):
     for tid in nt_new:
         t = nt[tid]
         events.append(_event(f"New task: {t['member_name']}, {t['short_en']}", f"புதிய பணி: {t['member_name']}, {t['short_ta']}", task_id=tid))
+    done_now = (new.get("facts") or {}).get("tasks", {})
     for tid in ot.keys() - nt.keys():
         t = ot[tid]
-        events.append(_event(f"Task no longer needed: {t['member_name']}, {t['short_en']}", f"பணி தேவையில்லை: {t['member_name']}, {t['short_ta']}", task_id=tid))
+        if done_now.get(tid):  # finished, so the problem is gone from the plan
+            events.append(_event(f"Completed: {t['member_name']}, {t['short_en']}", f"முடிந்தது: {t['member_name']}, {t['short_ta']}", task_id=tid))
+        else:
+            events.append(_event(f"Task no longer needed: {t['member_name']}, {t['short_en']}", f"பணி தேவையில்லை: {t['member_name']}, {t['short_ta']}", task_id=tid))
     for tid in nt.keys() & ot.keys():
         if nt[tid]["done"] and not ot[tid]["done"]:
             t = nt[tid]

@@ -114,6 +114,23 @@ def member_name_check(member, members, docs):
     return worst, cells
 
 
+# Office that corrects a printed name on each document (Aadhaar is the reference name).
+NAME_FIX_OFFICE = {"ration_card": "taluk_office", "bank_passbook": "bank_branch", "patta_land_record": "taluk_office",
+                   "school_records_6_to_12": "school", "college_admission_proof": "college",
+                   "husband_death_certificate": "local_body"}
+
+
+def name_fixes(member, members, docs):
+    """[(doc_id, office)] for documents whose printed name clearly differs (RED) from the Aadhaar name."""
+    printed = member.get("names_as_printed") or {}
+    ref = printed.get("aadhaar")
+    if not ref:
+        return []
+    rel = relative_name(member, members)
+    return [(d, NAME_FIX_OFFICE[d]) for d in docs
+            if d != "aadhaar" and printed.get(d) and d in NAME_FIX_OFFICE and name_check(printed[d], ref, rel) == "RED"]
+
+
 # ------------------------------------------------------------- problems + plan
 def _bring(office_id):
     if office_id == "bank_branch":
@@ -212,12 +229,18 @@ def analyse(derived, verdicts):
         if level == "YELLOW":
             count += 1
         elif level == "RED":
-            count += 1
-            add_task("aadhaar_centre", s["id"], {"task_id": f"{m['id']}:fix_name", "member_name": name,
-                                                 "short_en": "Correct the name on documents", "short_ta": "ஆவணங்களில் பெயரைத் திருத்தவும்",
-                                                 "en": "Correct the name so it matches on all documents",
-                                                 "ta": "எல்லா ஆவணங்களிலும் பெயர் ஒன்றாக இருக்கும்படி திருத்தவும்",
-                                                 "bring_en": "Aadhaar + the other document", "bring_ta": "ஆதார் + மற்ற ஆவணம்", "kind": "fix"})
+            fixes = name_fixes(m, members, s.get("name_check_documents", []))
+            count += max(1, len(fixes))
+            for doc, office in fixes or [(None, "aadhaar_centre")]:
+                info = DOCUMENTS.get(doc, {"en": "documents", "ta": "ஆவணங்கள்"})
+                add_task(office, s["id"], {"task_id": f"{m['id']}:fix_name" + (f":{doc}" if doc else ""), "member_name": name,
+                                           "short_en": f"Correct the name on the {info['en']}" if doc else "Correct the name on documents",
+                                           "short_ta": f"{info['ta']} இல் பெயரைத் திருத்தவும்" if doc else "ஆவணங்களில் பெயரைத் திருத்தவும்",
+                                           "en": f"Correct the name on the {info['en']} to match Aadhaar" if doc else "Correct the name so it matches on all documents",
+                                           "ta": f"{info['ta']} இல் பெயரை ஆதாரில் உள்ளபடி திருத்தவும்" if doc else "எல்லா ஆவணங்களிலும் பெயர் ஒன்றாக இருக்கும்படி திருத்தவும்",
+                                           "bring_en": f"Aadhaar + the {info['en']}" if doc else "Aadhaar + the other document",
+                                           "bring_ta": f"ஆதார் + {info['ta']}" if doc else "ஆதார் + மற்ற ஆவணம்",
+                                           "kind": "fix", "doc_id": doc})
         if apply_office:
             be, bt = _bring(apply_office)
             add_task(apply_office, s["id"], {"task_id": f"{m['id']}:apply:{s['id']}", "member_name": name,

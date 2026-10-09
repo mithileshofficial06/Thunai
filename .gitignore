@@ -8,3 +8,4 @@ llm_cache.json
 tts_cache/
 .env
 *.log
+thunai.db

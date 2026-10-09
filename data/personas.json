@@ -82,6 +82,7 @@
     "label_ta": "மீனா — 'என் ₹1,000 நின்றுவிட்டது'",
     "story_en": "Meena received ₹1,000 every month. Later she opened a new bank account and stopped using the old one, which went inactive. Her Aadhaar is still linked to the old account.",
     "story_ta": "மீனாவுக்கு மாதம் ₹1,000 வந்துகொண்டிருந்தது. பிறகு புதிய வங்கிக் கணக்கு தொடங்கினார்; பழைய கணக்கு செயலற்றதானது. ஆதார் இன்னும் பழைய கணக்குடன் இணைந்துள்ளது.",
+    "applicant_name": "Meena",
     "doctor_entry": "kmut_payment_stopped",
     "scripted_answers": { "q_selected_sms": "yes", "q_seeded": "no" },
     "expected": { "path": ["q_selected_sms", "q_seeded", "o_seeding"], "draft_letter": "bank_seeding_request (stretch S2)" }
@@ -109,6 +110,9 @@
           "names_as_printed": { "aadhaar": "Lakshmi", "ration_card": "Laxmi", "bank_passbook": "LAKSHMI" } }
       ]
     },
+    "member_id": "l1",
+    "rejection_reason_en": "Husband's death certificate not attached",
+    "rejection_reason_ta": "கணவரின் இறப்புச் சான்றிதழ் இணைக்கப்படவில்லை",
     "doctor_entry": "pension_rejected",
     "scripted_answers": { "q_reason_known": "yes", "q_docs_reason": "yes" },
     "expected": {
@@ -119,6 +123,43 @@
       "name_check": { "l1": "YELLOW (Lakshmi vs Laxmi — spelling variant)" },
       "path": ["q_reason_known", "q_docs_reason", "o_fix_doc_and_petition"],
       "draft_letter": "appeal_pension → helper approves"
+    }
+  },
+
+  "revathi_docs": {
+    "label_en": "Revathi — document problems (sample documents)",
+    "label_ta": "ரேவதி — ஆவணச் சிக்கல்கள் (மாதிரி ஆவணங்கள்)",
+    "story_en": "Revathi, 52, a widow living alone in Kancheepuram, wants to apply for the widow pension. Her documents carry different forms of her name, her husband's death certificate is not with her, and her Aadhaar is not linked to her bank account.",
+    "story_ta": "காஞ்சிபுரத்தில் தனியாக வசிக்கும் 52 வயது விதவை ரேவதி, விதவை ஓய்வூதியத்திற்கு விண்ணப்பிக்க விரும்புகிறார். அவரது ஆவணங்களில் பெயர் வெவ்வேறு வடிவில் உள்ளது, கணவரின் இறப்புச் சான்றிதழ் கையில் இல்லை, வங்கிக் கணக்குடன் ஆதார் இணைக்கப்படவில்லை.",
+    "member_id": "r1",
+    "sample_documents": [
+      { "doc_id": "aadhaar", "name_printed": "Revathi Sekar", "lines_en": ["Year of birth: 1974", "District: Kancheepuram"], "lines_ta": ["பிறந்த ஆண்டு: 1974", "மாவட்டம்: காஞ்சிபுரம்"], "status": "have" },
+      { "doc_id": "ration_card", "name_printed": "S. Revathi", "lines_en": ["Head of family", "Card type: PHH"], "lines_ta": ["குடும்பத் தலைவர்", "அட்டை வகை: PHH"], "status": "have" },
+      { "doc_id": "bank_passbook", "name_printed": "REVATHI S", "lines_en": ["Savings account (active)", "Aadhaar link: not done"], "lines_ta": ["சேமிப்புக் கணக்கு (செயலில்)", "ஆதார் இணைப்பு: இல்லை"], "status": "have" },
+      { "doc_id": "husband_death_certificate", "name_printed": null, "lines_en": ["Not with the family"], "lines_ta": ["குடும்பத்திடம் இல்லை"], "status": "missing" }
+    ],
+    "facts": {
+      "family": { "district": "Kancheepuram",
+        "has_ration_card": true, "ration_card_type": "PHH", "ration_card_head_member_id": "r1", "kmut_chosen_member_id": null,
+        "land_owner_member_id": null,
+        "annual_income": 48000, "electricity_units_per_year": 600,
+        "owns_cultivable_land": false, "land_in_own_name": false, "wet_land_acres": 0, "dry_land_acres": 0,
+        "owns_four_wheeler_personal_use": false, "income_tax_payer_last_year": false, "professional_tax_payer": false,
+        "govt_or_psu_or_bank_or_coop_employee_or_pensioner": false, "govt_pension_10000_or_more": false,
+        "elected_representative": false, "registered_practising_professional": false, "nri": false,
+        "gst_turnover_over_50_lakh": false, "receives_social_security_pension": false },
+      "members": [
+        { "id": "r1", "name": "Revathi", "relation": "self", "spouse_of": null, "on_ration_card": true, "gender": "female", "age": 52, "marital_status": "widowed",
+          "current_education": "none", "is_destitute": true, "immovable_property_value": 0,
+          "has_own_bank_account": true, "bank_aadhaar_seeded": false, "bank_account_active": true,
+          "docs": { "aadhaar": true, "husband_death_certificate": false },
+          "names_as_printed": { "aadhaar": "Revathi Sekar", "ration_card": "S. Revathi", "bank_passbook": "REVATHI S" } }
+      ]
+    },
+    "expected": {
+      "name_check": { "r1": "RED (initial S on ration card and passbook vs full surname on Aadhaar)" },
+      "missing": ["husband_death_certificate", "bank_account_aadhaar_seeded"],
+      "letters": ["name_correction_request (ration card)", "name_correction_request (bank passbook)", "bank_seeding_request", "application_pack"]
     }
   }
 }
