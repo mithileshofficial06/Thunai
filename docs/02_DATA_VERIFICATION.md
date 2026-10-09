@@ -13,7 +13,7 @@
 ## 1. Files
 | File | What it holds |
 |---|---|
-| `data/schemes.json` | Rules for 5 enabled schemes (+2 disabled): eligibility, exclusions, need-info flags, derived facts (KMUT head of family, mixed land), benefit amounts, total rules (exclusive groups, conflicts), how to apply, appeal, sources, verification status |
+| `data/schemes.json` | Rules for 8 enabled schemes (+1 disabled; 3 added after Evaluation 1): eligibility, exclusions, need-info flags, derived facts (KMUT head of family, mixed land), benefit amounts, total rules (exclusive groups, conflicts), how to apply, appeal, sources, verification status |
 | `data/documents.json` | Offices (with trip/online flag), documents (+ where to get each), `doc_fact_map`, tasks (PM-KISAN eKYC), **name-check algorithm + 6 test cases**, **trips algorithm** |
 | `data/doctor_tree.json` | 4 Rejection Doctor trees: KMUT payment stopped, KMUT rejected, PM-KISAN instalment stopped, pension rejected |
 | `data/questions.json` | Question bank (Tamil + English) in ask order; every rule field is covered by a question or derived |

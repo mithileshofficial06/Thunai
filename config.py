@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 STATIC_DIR = ROOT / "static"
-HANDOFF_DIR = ROOT / "handoff"
 LLM_CACHE_FILE = ROOT / "llm_cache.json"
 TTS_CACHE_DIR = ROOT / "tts_cache"
 

@@ -256,7 +256,7 @@ Each letter is in Tamil and then English, polite and simple, with no AI-written 
 | 0:00 | Teammate 1 | "Meena from Villupuram got ₹1,000 every month from Magalir Urimai. Three months ago it stopped. Nobody told her why. She lost two days' wages going to offices." |
 | 0:20 | Teammate 1 | "In July 2024, 1.48 lakh women who had been rejected for Magalir Urimai started receiving it after appealing (DT Next). How many never appealed? Eligible families lose money to fixable paperwork." (+ real-user quote if collected) |
 | 0:45 | You | "Thunai is an agent for Tamil Nadu families. Rules decide, AI understands, humans approve." Click **Load Murugan family** (or type 2 Tamil lines live). |
-| 1:00 | You | Point at the **agent panel**: "The AI decided to update the facts. Then the rules engine checked 5 schemes, using official rules with sources." |
+| 1:00 | You | Point at the **agent panel**: "The AI decided to update the facts. Then the rules engine checked every scheme (8 today), using official rules with sources." |
 | 1:45 | You | "3 schemes, about **₹30,000 a year** for this family." Open one card: rule + source + checked date. |
 | 2:15 | You | **Live correction:** type "இல்லங்க, வருமானம் 3 லட்சம்" (or edit the card) → panel shows 🔁 **re-plan** → "Magalir Urimai no longer applies: ₹18,000." |
 | 3:00 | You | Type "my Aadhaar is 1234 5678 9012" → 🔒 "The number is removed before it ever reaches the AI." |
