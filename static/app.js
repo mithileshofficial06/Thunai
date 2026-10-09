@@ -68,8 +68,9 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
 // ---------------------------------------------------------------- storage
-function save() { try { if (state.snap) localStorage.setItem("thunai.facts", JSON.stringify(state.snap.facts)); } catch (e) { /* storage unavailable */ } }
-function saved() { try { return JSON.parse(localStorage.getItem("thunai.facts") || "null"); } catch (e) { return null; } }
+// Family details are not kept in the browser (guest mode saves nothing); logged-in families use History.
+function save() { /* intentionally empty */ }
+try { localStorage.removeItem("thunai.facts"); } catch (e) { /* storage unavailable */ }
 
 // ---------------------------------------------------------------- API
 async function api(path, body) {
@@ -373,7 +374,7 @@ function init() {
     $("#consent").classList.remove("hidden");
     $("#consentOk").onclick = () => { localStorage.setItem("thunai.consent", "1"); $("#consent").classList.add("hidden"); };
   }
-  startSession(saved()).catch((e) => toast(`${t("warn")} ${e.message}`));
+  startSession().catch((e) => toast(`${t("warn")} ${e.message}`));
 }
 
 document.addEventListener("DOMContentLoaded", init);

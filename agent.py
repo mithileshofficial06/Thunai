@@ -378,6 +378,14 @@ def handle(session, text, lang="ta", from_voice=False):
     ack_ta = ack if ack and dec["language"] == "ta" else ("குறித்துக்கொண்டேன்." if changed else None)
     reply = {"en": "\n".join(([ack_en] if ack_en else []) + en),
              "ta": "\n".join(([ack_ta] if ack_ta else []) + ta)}
+    if not reply["en"].strip() or not reply["ta"].strip():  # never leave the family without an answer
+        v = sum(1 for x in new["verdicts"] if x["status"] == "ELIGIBLE")
+        done_en = (f"Noted. Your family details are up to date: eligible for {v} scheme(s), about ₹{new['rupees_per_year']:,} a year. "
+                   "See the results and the 'What to fix' tab." if v else "Noted. Your family details are up to date.")
+        done_ta = (f"குறித்துக்கொண்டேன். உங்கள் குடும்ப விவரங்கள் முழுமையாக உள்ளன: {v} திட்டங்களுக்குத் தகுதி, ஆண்டுக்கு சுமார் ₹{new['rupees_per_year']:,}. "
+                   "முடிவுகளையும் 'சரிசெய்ய வேண்டியவை' பகுதியையும் பார்க்கவும்." if v else "குறித்துக்கொண்டேன். உங்கள் குடும்ப விவரங்கள் புதுப்பிக்கப்பட்டுள்ளன.")
+        reply["en"] = reply["en"].strip() or done_en
+        reply["ta"] = reply["ta"].strip() or done_ta
     return events, new, reply
 
 
