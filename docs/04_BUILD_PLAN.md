@@ -1,4 +1,4 @@
-# Stage 4: Build Plan — Thunai 🔒 FINAL (v4: backend first, UI last)
+# Stage 4: Build Plan — Thunai 🔒 FINAL (v5: Phase 2 final scope in §4a; backend first, UI last)
 
 **Day:** 9 Oct 2026 · **Venue:** Alpha Hall, Sri Sairam · **Architecture:** `03_ARCHITECTURE.md` v6 · **UI design:** `07_UI_UX_BRIEF.md` (final)
 **Builders:** you + Claude Code · **Teammates:** testing, slides, pitch, Q&A
@@ -45,15 +45,16 @@
 | 11:08–11:12 | 10:44–10:47 | ✅ **CP1** | — | Demo × 2 · privacy · offline |
 | 11:12–11:30 | 10:47–11:00 | 🎬 **Freeze** | — | Video · walkthrough · rehearse × 2 |
 | **11:30** | **11:00** | **EVALUATION 1** | | |
-| 11:45–12:40 | same | **B4** Backend for H4–H5 + voice (Fix, Doctor, letters, helper, STT/TTS) | **backend** (+ MOD-1 subagent in parallel) | API tests: trips 6 → 2; Meena → o_seeding; Lakshmi letter; approve; TTS → STT round trip |
-| 12:40–13:00 | same | 🍛 Lunch | | |
-| 13:00–13:55 | same | **B5** UI for Fix · Doctor · Letters · Helper + 🎤🔊 voice | **UI** | Full Eval 2 flow in the browser, incl. voice |
-| 13:55–14:05 | same | ✅ **CP2** | — | Full Eval 2 run |
-| 14:05–14:35 | same | **B6** Stretch: S1 ⏩ (backend → button) → S5 🤖 | both | Only if CP2 passed |
+| 11:45–12:30 | same | **B4a** Backend MUST: letters + helper, Doctor wiring, sample-documents family, voice | **backend** | see §4a B4a |
+| 12:30–12:55 | same | **B4b** Backend SHOULD: login + history, SMS outbox + summary, follow-up reminders | **backend** | see §4a B4b |
+| 12:55–13:10 | same | 🍛 Lunch | | |
+| 13:10–14:05 | same | **B5** UI: Fix · Doctor · Letters · Helper · voice · login/history · SMS outbox | **UI** | Full Eval 2 flow in the browser |
+| 14:05–14:15 | same | ✅ **CP2** | — | Full Eval 2 run |
+| 14:15–14:35 | same | **B6** Stretch: more verified schemes, source check | both | Only if CP2 passed |
 | 14:35–15:00 | same | 🎬 **Freeze** | — | Video · cache warm-up · rehearse × 3 |
-| **~15:00** | same | **EVALUATION 2** | | |
+| **~15:00** | same | **EVALUATION 2** (ends ~15:20) | | |
 
-If Eval 2 is earlier than 15:00: drop B6, then English-only letters.
+**Phase 2 is defined by §4a (v5).** The old B4–B6 text below §4a is kept only for reference; UiPath is dropped.
 
 ---
 
@@ -104,6 +105,229 @@ If Eval 2 is earlier than 15:00: drop B6, then English-only letters.
 
 ### EVALUATION 1: "It understands and decides"
 Per `05_PROMPTS_AND_PITCH.md` §4. Teammate 1 writes down every judge comment.
+
+---
+
+## 4a. Phase 2 final scope (v5): what to build, part by part
+
+**Changes since v4:**
+- UiPath robot dropped. Thunai **prepares** the application; the family or helper **submits** it on the official site.
+- UI is the government-portal style, with no emojis.
+- Added after the judge's and team's input: login + chat history, a sample-documents family, SMS outbox + summary, follow-up reminders, more verified schemes, and a source check.
+
+**Already built (do not rebuild):**
+- `engine/doctor.py` + `/api/doctor`
+- `/api/task` (tick a task → re-plan events)
+- `member:<id>.names_as_printed.<doc>` facts
+- `analyse()`: name matrix, fix plan by office, trips
+- `load_persona()` and the Meena / Lakshmi buttons
+
+**Honesty rules (apply to every part):**
+- No real or realistic government document images. Sample documents are **data cards marked "SAMPLE"**, with no Aadhaar or bank numbers.
+- Thunai never submits to a government site, never sees government records, and never asks for Aadhaar, bank or OTP numbers.
+- Doctor outcomes say **"most likely cause"**.
+- Letters stay **DRAFT** until a helper approves them.
+- No real SMS is sent (it needs money and DLT registration). Messages go to an **SMS outbox** shown on screen; a provider can be plugged in later. The WhatsApp share link is free and works now.
+- A scheme is **enabled only with an official source + checked date**; otherwise it stays disabled.
+
+### Parts
+
+| # | Part | Layer | Priority |
+|---|---|---|---|
+| P1 | Letters + helper approval | backend | MUST |
+| P2 | Doctor → letter / helper wiring | backend | MUST |
+| P3 | Sample-documents family ("Revathi") | backend + data | MUST |
+| P4 | Voice: speech-to-text + text-to-speech | backend | MUST |
+| P5 | Login + chat history | backend | SHOULD |
+| P6 | SMS outbox + summary SMS + WhatsApp share | backend | SHOULD |
+| P7 | Follow-up: "15 days later" reminders + new-scheme re-match | backend | SHOULD |
+| P8 | More verified schemes (target 8–9) | data + tests | STRETCH (links gathered earlier by a teammate) |
+| P9 | Source check (did the official page change?) | backend | STRETCH |
+| U1–U8 | UI for all of the above | UI | as their part |
+
+#### P1: Letters + helper approval (MUST)
+
+**Code:** `engine/letters.py` + `templates/*.html`.
+- Letters are **deterministic templates** filled from facts. They are written in polite, simple official Tamil plus English and read as human-written, but no AI is used, so names and numbers are always exact.
+
+**Kinds:**
+- `application_pack`: per eligible scheme, the facts, documents checklist, where to apply and the official link.
+- `name_correction_request`
+- `bank_seeding_request`
+- `grievance`: KMUT portal / CM Helpline text.
+- `appeal_kmut`
+- `appeal_pension`
+- `available_kinds()` hides any kind that isn't built.
+
+**Endpoints:**
+- `POST /api/letter {session_id, kind, member_id}` → draft into the helper queue, plus an agent event "Drafted …, waiting for helper approval".
+- `GET /api/helper/queue`
+- `POST /api/helper/approve {letter_id}`
+- `GET /letter/{id}`: A4 page; DRAFT watermark until approved; Print only when approved.
+
+**Done-check:**
+- The Murugan application pack names all 3 schemes.
+- Lakshmi's appeal contains "Lakshmi".
+- Approve → no watermark.
+
+#### P2: Doctor wiring (MUST)
+- A Doctor outcome with `draft_letter` offers that letter (P1). `escalate_to_helper` adds a helper-queue item with the reason.
+- The outcome's office is added to the fix plan.
+- `/api/demo/meena` and `/api/demo/lakshmi_paati` play their full flows.
+
+**Done-check:**
+- Meena: yes → no → `o_seeding` → bank seeding letter draft.
+- Lakshmi → appeal draft.
+
+#### P3: Sample-documents family "Revathi" (MUST)
+**Data:** a new persona `revathi_docs` in `data/personas.json`, with documents as SAMPLE cards (document, name as printed, DOB, address; no numbers).
+
+**Problems built in:**
+- The ration card says "S. Revathi" while Aadhaar says "Revathi Sekar" (name risk).
+- The income certificate is missing.
+- The husband's death certificate spells the name differently.
+- Aadhaar is not linked to the bank account in use.
+
+**Endpoint:** `GET /api/sample_docs/{persona}` returns the cards.
+
+**Expected:**
+- The matrix shows a name risk.
+- The fix plan groups the tasks into the fewest visits.
+- Letters are offered: `name_correction_request` and `bank_seeding_request`.
+- If a problem stays stuck, a `grievance` is offered.
+- The exact scheme list is whatever the rules engine says; never hard-code verdicts.
+
+**Done-check:** a test asserts the name risk, the missing income certificate, the bank task, and trips with-plan < without-plan.
+
+#### P4: Voice (MUST)
+**Code:** `voice.py` per `03_ARCHITECTURE.md` §4a.
+- `POST /api/stt`: Groq `whisper-large-v3`, "ta"/"en" → `{text, ms}`.
+- `POST /api/tts`: edge-tts `ta-IN-PallaviNeural` / `en-IN-NeerjaNeural` → MP3, cached in `tts_cache/`.
+- Numbers that came from voice are always marked "please confirm".
+
+**Done-check:** TTS → STT round trip ≥ 85% similar.
+
+#### P5: Login + chat history (SHOULD)
+**Storage:** `store.py` with stdlib `sqlite3` → `thunai.db` (gitignored).
+- `users(phone, pin_hash, role, created)`: PIN hashed with `hashlib.pbkdf2_hmac` + salt.
+- `chats(id, user, title, facts_json, events_json, updated)`.
+
+**Beneficiary login:** phone + 4-digit PIN.
+- Why not OTP: real OTP SMS costs money, and the app tells people never to share an OTP.
+
+**Helper login:** username + password. One demo helper account is seeded.
+
+**Endpoints:**
+- `/api/auth/register`, `/api/auth/login` → token (random, server memory), `/api/auth/logout`
+- `/api/history`: the user's chats, newest first.
+- `/api/history/{id}`: reopen a chat with its facts, plan and events.
+- `DELETE /api/me`: delete all of the user's data.
+- Helper-only routes check the role.
+
+**Privacy:**
+- Consent checkbox at registration.
+- The phone number is never sent to the AI (`pii_guard` already strips 9–18-digit numbers).
+- **The demo buttons keep working without login (guest)**, so the demo never blocks on a login screen.
+
+**Done-check:**
+- Register → chat → logout → login → the chat is listed and reopens identically.
+- A wrong PIN is refused.
+- A beneficiary can't call the helper routes.
+
+#### P6: SMS outbox + summary (SHOULD)
+**Code:** `engine/notify.py`.
+- `summary_sms(snapshot, lang)`: ≤ 3 SMS segments in Tamil, for example: "Thunai: eligible for 3 schemes (about ₹30,000/year). Next: Bank — link Aadhaar; Taluk office — income certificate. Never share your OTP."
+- Outbox table `outbox(id, phone, text, reason, created)`.
+
+**Endpoints:**
+- `POST /api/sms/summary`
+- `GET /api/outbox`
+- `config.SMS_PROVIDER = None` → outbox only.
+
+**UI:** "Send summary" + "Share on WhatsApp" (`https://wa.me/?text=`, free).
+
+**Done-check:** the summary contains the ₹ figure and the first office; it's ≤ 480 characters.
+
+#### P7: Follow-up reminders + new-scheme re-match (SHOULD)
+**Code:** `engine/proactive.py`, `simulate(state, days)`:
+- each open task → a reminder;
+- a KMUT appeal within 5 days of its 30-day deadline → an urgent reminder;
+- a task open > 14 days → escalate to the helper with a reason.
+
+**Re-match:** `rematch()` re-runs `recompute()` for every saved family against the current `schemes.json`. A family that is newly ELIGIBLE gets "New scheme for you: …" in the outbox.
+
+**Endpoints:** `POST /api/simulate {session_id, days}`, `POST /api/rematch`. Events are tagged "Follow-up (automatic)".
+
+**Done-check:** simulate 15 days on Murugan → reminders + an outbox SMS. Enable a test scheme → rematch → the matching family gets one SMS.
+
+#### P8: More verified schemes (STRETCH; links gathered earlier)
+**Candidates:**
+- Tamil Pudhalvan (currently disabled)
+- TN differently-abled maintenance allowance
+- TN unmarried / deserted women pension
+- PM Matru Vandana Yojana
+
+**Rules:**
+- **Official source + checked date or it stays disabled.** Rules come from the official text only.
+- Each new scheme needs: `required_documents`, `where_to_apply`, `official_sources`, `verification`, one ELIGIBLE test and one NOT_ELIGIBLE test.
+- No code change, only `data/schemes.json` (+ `documents.json`).
+
+#### P9: Source check (STRETCH)
+- `GET /api/admin/check_sources` (helper only): fetch each `official_sources` URL (5 s timeout) and compare the hash of its text with `data/source_hashes.json`.
+- Result per scheme: "unchanged", "**changed: needs review**", or "unreachable".
+- Data older than 30 days → "information may be old".
+- **It never edits rules**; a person reviews and updates `schemes.json`.
+
+#### UI parts (B5): government style, real API only
+
+| # | UI | Contents |
+|---|---|---|
+| U1 | **Fix tab** | People × documents table (Match / Name risk / Missing, with the reason on click); "name as printed" form; missing documents with where to get each; fix plan per office (what to bring, "unblocks N schemes", Done checkbox → re-plan in the activity log); "visits 2 (instead of 6)" |
+| U2 | **Doctor tab** | 4 entry buttons; Yes / No / Don't know; outcome: most likely cause, "check in 1 minute" link, numbered fix steps, "Draft letter" button |
+| U3 | **Letters + Helper tabs** | Draft list; A4 preview with DRAFT watermark; helper queue with the agent's reason; Approve → Print |
+| U4 | **Voice** | Mic button next to the chat input (transcript is editable before sending); speaker toggle in the header; "please confirm" on spoken numbers |
+| U5 | **Login + history** | Login / Register (phone + PIN, consent), "Continue as guest"; "Previous conversations" list; "Delete my data"; helper login |
+| U6 | **SMS outbox + follow-up** | Outbox panel (to, message, reason, time); "Send summary", "Share on WhatsApp"; "Simulate 15 days later" button |
+| U7 | **Sample documents** | Revathi button in the navy bar; SAMPLE document cards above the Fix table |
+| U8 | (stretch) **Admin** | Source check results, "needs review" tags |
+
+### Order, done-checks and cut rules
+- **B4a (11:45–12:30):** P1 → P2 → P3 → P4.
+  - P1 templates can run as a background subagent while P3 is built.
+  - Done: `pytest` ALL PASS, plus the P1–P4 done-checks from the terminal. **Commit + push.**
+- **B4b (12:30–12:55):** P5 → P6 → P7.
+  - Done: P5–P7 done-checks. **Commit + push.**
+- **B5 (13:10–14:05):** U1 → U2 → U3 → U7 → U4 → U6 → U5.
+  - Done: the full Eval 2 story below works in the browser. **Commit + push.**
+- **CP2 (14:05–14:15):** the full story twice; all tests pass; commit "cp2" + push.
+- **B6 (14:15–14:35):** P8 → P9 → U8. Commit + push each.
+
+**Cut order if late:** P9 → P8 (keep 5 schemes) → P7 re-match → P5 helper login (the helper tab works without login) → P5 entirely (the history list then uses this browser only) → speech-to-text (keep text-to-speech).
+
+**Never cut:** P1, P2, P3, U1–U3, the re-plan and the activity log.
+
+### Eval 2 demo story (about 5 min)
+1. **Login** with phone + PIN → "Previous conversations" shows the earlier Murugan chat → reopen it. *(Memory)*
+2. **Revathi (sample documents)** → the Fix tab shows the name risk, the missing income certificate and the unlinked bank → fix plan in the fewest visits → tick a task → the activity log re-plans. *(Find problems, fix them)*
+3. **Draft the name correction letter** → helper logs in → approves → Print. *(Humans approve)*
+4. **Meena: money stopped** → 3 questions → "Aadhaar not linked to the account you use" → bank seeding letter. *(Doctor)*
+5. **Simulate 15 days later** → reminders + SMS outbox; **Send summary** / WhatsApp share. *(Follow until resolved)*
+6. **Voice:** speak a Tamil sentence → the reply is spoken in Tamil. *(Inclusion)*
+7. (If built) **Source check** → every scheme shows its official link + checked date. *(Trust)*
+
+**Must exist at the end (v5):**
+- Root files: `app.py config.py llm.py agent.py accuracy.py pii_guard.py amounts.py voice.py store.py`
+- Engine: `engine/{__init__,data,facts,rules,documents,questions,doctor,letters,notify,proactive}.py`
+- Letters: `templates/*.html`
+- Front end: `static/{index.html,app.js,style.css,tailwindcss-play-3.4.17.js}`
+- Data: `data/*.json`
+- Tests: `tests/test_engine.py test_api.py test_understand.py test_modules.py test_phase2.py`, all passing
+- Generated at runtime, gitignored: `thunai.db tts_cache/ llm_cache.json`
+
+**Team roles (v5):**
+- The former UiPath teammate gathers official links for the P8 schemes during B4 and runs the done-checks.
+- Teammate 1 keeps the bug list and records the backup video.
+- Teammate 2 prepares the Eval 2 slides and Q&A.
 
 ---
 
