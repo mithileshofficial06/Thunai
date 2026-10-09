@@ -64,6 +64,8 @@ RULES
     - Scheme names: மகளிர் உரிமை / உரிமைத் தொகை / ₹1000 → KMUT · பிஎம்-கிசான் / PM-KISAN → PM-KISAN ·
       ஓய்வூதியம் / pension → pension. Rejected / நிராகரி → *_rejected; stopped / didn't come / வரல →
       *_payment_stopped (PM-KISAN → pmkisan_stopped).
+13. NAMES: always write member names in English letters (transliterate), e.g. முருகன் → Murugan,
+    செல்வி → Selvi, காவ்யா → Kavya. names_as_printed values must be copied exactly as the user typed them.
 
 ALLOWED FACT PATHS
 family: has_ration_card, ration_card_type (PHH | PHH-AAY | NPHH | NPHH-S | NPHH-NC), ration_card_head_member_id,

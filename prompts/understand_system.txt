@@ -71,3 +71,4 @@ member:<id>: name, relation (self | spouse | daughter | son | mother | father | 
 member:<id>.docs.<doc_id>: true/false   (doc ids: aadhaar, patta_land_record, school_records_6_to_12,
   college_admission_proof, husband_death_certificate)
 member:<id>.names_as_printed.<doc_id>: the name exactly as printed
+13. NAMES: always write member names in English letters (transliterate), e.g. முருகன் → Murugan, செல்வி → Selvi, காவ்யா → Kavya. names_as_printed values must be copied exactly as the user typed them.

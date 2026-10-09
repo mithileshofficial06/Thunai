@@ -87,7 +87,7 @@ def _run(name, user):
 
 
 def _cache_key(text, card, last_question):
-    raw = json.dumps([text, card, last_question], ensure_ascii=False, sort_keys=True)
+    raw = json.dumps([SYSTEM_PROMPT, text, card, last_question], ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
