@@ -374,8 +374,10 @@ def handle(session, text, lang="ta", from_voice=False):
     if nq and not dec["ask"] and not (session["doctor"] and session["doctor"]["step"]["kind"] == "question"):
         en.append(f"Next: {nq['en']}"); ta.append(f"அடுத்து: {nq['ta']}")
     ack = dec["ack"]
-    reply = {"en": "\n".join(([ack] if ack and dec["language"] == "en" else []) + en),
-             "ta": "\n".join(([ack] if ack and dec["language"] == "ta" else []) + ta)}
+    ack_en = ack if ack and dec["language"] == "en" else ("Noted." if changed else None)
+    ack_ta = ack if ack and dec["language"] == "ta" else ("குறித்துக்கொண்டேன்." if changed else None)
+    reply = {"en": "\n".join(([ack_en] if ack_en else []) + en),
+             "ta": "\n".join(([ack_ta] if ack_ta else []) + ta)}
     return events, new, reply
 
 

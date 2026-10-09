@@ -89,6 +89,10 @@ function applyLang() {
   $$("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   $$(".lang-switch button").forEach((b) => b.classList.toggle("on", b.dataset.lang === state.lang));
   if (state.snap) render(state.snap, false);
+  $$("#chatLog .bubble").forEach((b) => {
+    b.querySelector(".who").textContent = b.dataset.who === "agent" ? t("who") : t("you");
+    if (b.dataset.en !== undefined) b.querySelector(".body").textContent = (state.lang === "ta" ? b.dataset.ta : b.dataset.en) || b.dataset.en;
+  });
   $$("#agentLog li").forEach((li) => {
     li.querySelector(".txt").textContent = li.dataset[state.lang] || li.dataset.en;
     li.querySelector(".kind").textContent = t("kind")[li.dataset.type] || li.dataset.type;
@@ -96,9 +100,11 @@ function applyLang() {
 }
 
 // ---------------------------------------------------------------- chat
-function bubble(who, text, extra = "") {
+function bubble(who, text, extra = "", both = null) {
   const div = document.createElement("div");
   div.className = `bubble ${who} ${extra}`;
+  div.dataset.who = who;
+  if (both) { div.dataset.en = both.en || ""; div.dataset.ta = both.ta || both.en || ""; }
   div.innerHTML = `<span class="who"></span><span class="body"></span>`;
   div.querySelector(".who").textContent = who === "agent" ? t("who") : t("you");
   div.querySelector(".body").textContent = text;
@@ -127,7 +133,7 @@ function handle(r, showReply = true) {
   enqueue(r.events || []);
   render(r.snapshot, true);
   renderAsk(r.pending_ask || []);
-  if (showReply && r.reply) { const text = replyText(r.reply); if (text) { bubble("agent", text); if (typeof speak === "function") speak(text); } }
+  if (showReply && r.reply) { const text = replyText(r.reply); if (text) { bubble("agent", text, "", r.reply); if (typeof speak === "function") speak(text); } }
   save();
 }
 
@@ -320,15 +326,16 @@ function toast(text) {
 async function startSession(facts) {
   const r = await api("/api/session", { saved_facts: facts || null });
   state.sid = r.session_id;
+  state.queue = [];
   $("#agentLog").innerHTML = "";
   $("#chatLog").innerHTML = "";
   state.snap = null;
   if (typeof p2 !== "undefined") { p2.doctor = null; p2.drafts = []; p2.suggested = []; p2.outbox = []; p2.cards = []; }
   handle(r, false);
   const q = r.snapshot.next_question;
-  bubble("agent", r.snapshot.facts.members.length
-    ? `${t("welcomeBack")}${q ? " " + t("next") + " " + (state.lang === "ta" ? q.ta : q.en) : ""}`
-    : t("hello"));
+  const msg = (lang) => (r.snapshot.facts.members.length
+    ? `${T[lang].welcomeBack}${q ? " " + T[lang].next + " " + q[lang] : ""}` : T[lang].hello);
+  bubble("agent", msg(state.lang), "", { en: msg("en"), ta: msg("ta") });
 }
 
 async function loadPersona(name) {

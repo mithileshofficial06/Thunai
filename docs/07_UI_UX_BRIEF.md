@@ -1,5 +1,7 @@
 # UI/UX Design Brief — Thunai (துணை) 🔒 FINAL
 
+> **Login first (final):** the site opens on a sign-in page (phone + 4-digit PIN with consent, Register, helper login), next to a "What Thunai does" panel (Find / Fix / Follow, the principle, privacy points). **Continue as guest** goes straight to the dashboard, so the demo never blocks. Logout and Delete my data return to the sign-in page.
+>
 > **Phase 2 UI (v2, after Evaluation 1), built in B5 in the same government style, with no emojis:**
 > - **Navy bar:** demo families Murugan · **Revathi (sample documents)** · Meena · Lakshmi.
 > - **Header:** Login / History · Start over.

@@ -8,6 +8,14 @@ Object.assign(T.ta, {
   confirmDelete: "உங்கள் கணக்கு மற்றும் சேமித்த உரையாடல்கள் அனைத்தும் நீக்கப்படும். தொடரவா?", saved: "சேமிக்கப்பட்டது", loggedIn: "உள்நுழைந்துள்ளீர்கள்",
   sourcesTitle: "அதிகாரப்பூர்வ ஆதாரச் சரிபார்ப்பு", checkSources: "ஆதாரங்களைச் சரிபார்", sources: { baseline: "அடிப்படை பதிவு", unchanged: "மாற்றமில்லை", changed: "மாறியுள்ளது: சரிபார்க்க வேண்டும்", unreachable: "அணுக முடியவில்லை" },
   stale: "தகவல் பழையதாக இருக்கலாம்", reopened: "முந்தைய உரையாடல் மீண்டும் திறக்கப்பட்டது.",
+  gateTitle: "துணையில் உள்நுழையவும்", gateSub: "உங்கள் குடும்பத்தின் முன்னேற்றம் சேமிக்கப்படும்; எப்போது வேண்டுமானாலும் தொடரலாம்.",
+  or: "அல்லது", guestNote: "விருந்தினர் முறையில் எதுவும் சேமிக்கப்படாது. மாதிரி குடும்பங்களைப் பார்க்க இது போதும்.",
+  needConsent: "பதிவு செய்ய ஒப்புதல் பெட்டியைத் தேர்ந்தெடுக்கவும்.",
+  gateInfoTitle: "துணை என்ன செய்கிறது", gFind: "கண்டறி", gFindT: "தமிழில் பேசுங்கள்; குடும்பத்துக்குரிய அனைத்துத் திட்டங்களையும் அதிகாரப்பூர்வ விதிகளின்படி சரிபார்க்கிறது.",
+  gFix: "சரிசெய்", gFixT: "ஆவணங்களில் உள்ள பெயர் வேறுபாடு, இல்லாத ஆவணங்களைக் கண்டறிந்து குறைந்த பயணங்களில் சரிசெய்யத் திட்டமிடுகிறது.",
+  gFollow: "பின்தொடர்", gFollowT: "கடிதங்களைத் தயாரிக்கிறது (உதவியாளர் ஒப்புதலுடன்), பணம் நின்றால் காரணம் கண்டறிகிறது, நினைவூட்டுகிறது.",
+  gRule: "விதிகள் முடிவு செய்கின்றன · AI புரிந்துகொள்கிறது · மனிதர்கள் ஒப்புதல் அளிக்கின்றனர்",
+  gPrivacy: ["ஆதார் எண், வங்கிக் கணக்கு எண், OTP ஒருபோதும் கேட்கப்படாது.", "PIN மறைகுறியாக்கப்பட்டு (hash) சேமிக்கப்படுகிறது.", "உங்கள் விவரங்களை எப்போது வேண்டுமானாலும் நீக்கலாம்."],
 });
 Object.assign(T.en, {
   login: "Login", logout: "Logout", history: "Previous conversations", register: "Register", guest: "Continue as guest",
@@ -18,6 +26,14 @@ Object.assign(T.en, {
   confirmDelete: "Your account and all saved conversations will be deleted. Continue?", saved: "Saved", loggedIn: "Logged in",
   sourcesTitle: "Official source check", checkSources: "Check sources", sources: { baseline: "Baseline recorded", unchanged: "Unchanged", changed: "Changed: needs review", unreachable: "Unreachable" },
   stale: "Information may be old", reopened: "Previous conversation reopened.",
+  gateTitle: "Sign in to Thunai", gateSub: "Your family's progress is saved so you can continue any time.",
+  or: "or", guestNote: "Nothing is saved in guest mode. Enough to try the demo families.",
+  needConsent: "Please tick the consent box to register.",
+  gateInfoTitle: "What Thunai does", gFind: "Find", gFindT: "Talk in Tamil; every scheme your family qualifies for is checked against official rules.",
+  gFix: "Fix", gFixT: "Finds name mismatches and missing documents, and plans the fixes in the fewest office visits.",
+  gFollow: "Follow", gFollowT: "Drafts letters (approved by a helper), finds why a payment stopped, and reminds you.",
+  gRule: "Rules decide · AI understands · Humans approve",
+  gPrivacy: ["Aadhaar numbers, bank account numbers and OTPs are never asked for.", "Your PIN is stored only as a secure hash.", "You can delete your data at any time."],
 });
 
 const acct = { token: null, user: null, timer: null };
@@ -51,7 +67,10 @@ function renderAccount() {
     box.innerHTML = `<span class="muted small">${esc(acct.user.role === "helper" ? acct.user.name || "Helper" : acct.user.phone_masked)}</span>
       <button class="link-btn" id="histBtn">${esc(t("history"))}</button><button class="link-btn" id="logoutBtn">${esc(t("logout"))}</button>`;
     $("#histBtn").onclick = openHistory;
-    $("#logoutBtn").onclick = async () => { try { await authApi("POST", "/api/auth/logout"); } catch (e) { /* ignore */ } setUser(null, null); };
+    $("#logoutBtn").onclick = async () => {
+      try { await authApi("POST", "/api/auth/logout"); } catch (e) { /* ignore */ }
+      setUser(null, null); setGuest(false); startSession(); showGate();
+    };
   } else {
     box.innerHTML = `<button class="link-btn" id="loginBtn">${esc(t("login"))}</button>`;
     $("#loginBtn").onclick = openLogin;
@@ -70,26 +89,67 @@ function modal(html) {
 }
 function closeModal() { $("#modal")?.remove(); }
 
-function openLogin() {
-  modal(`<h2>${esc(t("login"))}</h2>
-    <label class="field">${esc(t("phone"))}<input id="lgPhone" autocomplete="username" inputmode="text"></label>
-    <label class="field">${esc(t("pin"))}<input id="lgPin" type="password" autocomplete="current-password"></label>
-    <label class="check"><input type="checkbox" id="lgConsent"> <span class="small">${esc(t("consentLogin"))}</span></label>
-    <p class="muted small">${esc(t("loginNote"))}</p>
-    <div class="row-btns wrap"><button class="btn btn-primary" id="lgLogin">${esc(t("login"))}</button>
-    <button class="btn btn-outline" id="lgReg">${esc(t("register"))}</button>
-    <button class="link-btn" id="lgGuest">${esc(t("guest"))}</button></div>`);
+function openLogin() { showGate(); }
+
+function isGuest() { try { return sessionStorage.getItem("thunai.guest") === "1"; } catch (e) { return false; } }
+function setGuest(on) { try { on ? sessionStorage.setItem("thunai.guest", "1") : sessionStorage.removeItem("thunai.guest"); } catch (e) { /* ignore */ } }
+
+function hideGate() { $("#gate")?.remove(); document.body.classList.remove("gated"); }
+
+function showGate() {
+  hideGate();
+  document.body.classList.add("gated");
+  const g = document.createElement("section");
+  g.id = "gate";
+  g.className = "gate container";
+  g.innerHTML = `
+    <div class="gate-card panel-box">
+      <div class="panel-head"><h2>${esc(t("gateTitle"))}</h2><p>${esc(t("gateSub"))}</p></div>
+      <form id="gateForm" class="gate-form" autocomplete="on">
+        <label class="field">${esc(t("phone"))}<input id="lgPhone" autocomplete="username" inputmode="text" required></label>
+        <label class="field">${esc(t("pin"))}<input id="lgPin" type="password" autocomplete="current-password" required></label>
+        <label class="check"><input type="checkbox" id="lgConsent"> <span class="small">${esc(t("consentLogin"))}</span></label>
+        <div id="lgErr" class="form-err hidden" role="alert"></div>
+        <div class="row-btns wrap"><button class="btn btn-primary" id="lgLogin" type="submit">${esc(t("login"))}</button>
+          <button class="btn btn-outline" id="lgReg" type="button">${esc(t("register"))}</button></div>
+        <p class="muted small">${esc(t("loginNote"))}</p>
+        <div class="gate-or"><span>${esc(t("or"))}</span></div>
+        <button class="btn btn-outline gate-guest" id="lgGuest" type="button">${esc(t("guest"))}</button>
+        <p class="muted small">${esc(t("guestNote"))}</p>
+      </form>
+    </div>
+    <div class="gate-info panel-box">
+      <div class="panel-head"><h2>${esc(t("gateInfoTitle"))}</h2></div>
+      <ol class="gate-steps">
+        <li><strong>${esc(t("gFind"))}</strong><span>${esc(t("gFindT"))}</span></li>
+        <li><strong>${esc(t("gFix"))}</strong><span>${esc(t("gFixT"))}</span></li>
+        <li><strong>${esc(t("gFollow"))}</strong><span>${esc(t("gFollowT"))}</span></li>
+      </ol>
+      <div class="gate-rule">${esc(t("gRule"))}</div>
+      <ul class="gate-privacy small">${t("gPrivacy").map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    </div>`;
+  document.querySelector(".navbar").after(g);
+  const err = (m) => { const e = $("#lgErr"); e.textContent = m; e.classList.remove("hidden"); };
   const creds = () => ({ phone: $("#lgPhone").value.trim(), pin: $("#lgPin").value.trim() });
-  $("#lgLogin").onclick = async () => {
-    try { const r = await authApi("POST", "/api/auth/login", creds()); setUser(r.token, r.user); closeModal(); toast(t("loggedIn")); autosave(); }
-    catch (e) { toast(`${t("warn")} ${e.message}`); }
+  const enter = (r) => {
+    setGuest(false);
+    try { localStorage.setItem("thunai.consent", "1"); } catch (e) { /* ignore */ }
+    $("#consent")?.classList.add("hidden");
+    setUser(r.token, r.user);
+    hideGate();
+    toast(t("loggedIn"));
+    autosave();
+  };
+  $("#gateForm").onsubmit = async (e) => {
+    e.preventDefault();
+    try { enter(await authApi("POST", "/api/auth/login", creds())); } catch (x) { err(x.message); }
   };
   $("#lgReg").onclick = async () => {
-    try { const r = await authApi("POST", "/api/auth/register", { ...creds(), consent: $("#lgConsent").checked }); setUser(r.token, r.user); closeModal(); toast(t("loggedIn")); autosave(); }
-    catch (e) { toast(`${t("warn")} ${e.message}`); }
+    if (!$("#lgConsent").checked) { err(t("needConsent")); return; }
+    try { enter(await authApi("POST", "/api/auth/register", { ...creds(), consent: true })); } catch (x) { err(x.message); }
   };
-  $("#lgGuest").onclick = closeModal;
-  $("#lgPhone").focus();
+  $("#lgGuest").onclick = () => { setGuest(true); hideGate(); };
+  setTimeout(() => $("#lgPhone")?.focus(), 50);
 }
 
 async function openHistory() {
@@ -106,7 +166,7 @@ async function openHistory() {
   $("#mClose").onclick = closeModal;
   $("#delMe").onclick = async () => {
     if (!confirm(t("confirmDelete"))) return;
-    try { await authApi("DELETE", "/api/me"); setUser(null, null); closeModal(); toast(t("deleted")); }
+    try { await authApi("DELETE", "/api/me"); setUser(null, null); setGuest(false); closeModal(); startSession(); showGate(); toast(t("deleted")); }
     catch (e) { toast(`${t("warn")} ${e.message}`); }
   };
 }
@@ -119,7 +179,7 @@ async function reopen(chatId) {
     $("#agentLog").innerHTML = ""; $("#chatLog").innerHTML = ""; state.snap = null;
     if (typeof p2 !== "undefined") { p2.doctor = null; p2.drafts = []; p2.outbox = []; p2.cards = []; }
     handle(r, false);
-    bubble("agent", t("reopened"));
+    bubble("agent", t("reopened"), "", { en: T.en.reopened, ta: T.ta.reopened });
   } catch (e) { toast(`${t("warn")} ${e.message}`); }
 }
 
@@ -171,5 +231,9 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(() => {
   box.id = "acctBox"; box.className = "acct";
   tools.insertBefore(box, tools.firstChild);
   renderAccount();
-  $$(".lang-switch button").forEach((b) => b.addEventListener("click", renderAccount));
+  if (!acct.user && !isGuest()) showGate();
+  $$(".lang-switch button").forEach((b) => b.addEventListener("click", () => {
+    renderAccount();
+    if ($("#gate")) { const ph = $("#lgPhone").value, pn = $("#lgPin").value; showGate(); $("#lgPhone").value = ph; $("#lgPin").value = pn; }
+  }));
 }, 0));

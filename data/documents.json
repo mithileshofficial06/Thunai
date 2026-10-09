@@ -60,7 +60,7 @@
       "if_missing": { "office": "local_body", "en": "Apply at the panchayat / municipality where the death was registered.", "ta": "இறப்பு பதிவான ஊராட்சி / நகராட்சி அலுவலகத்தில் விண்ணப்பிக்கவும்." },
       "verification": "general (standard proof of widowhood — confirm at e-Sevai)"
     },
-    "bank_passbook": { "en": "Bank passbook (name check only)", "ta": "வங்கிப் புத்தகம் (பெயர் சரிபார்ப்புக்கு மட்டும்)", "verification": "n/a" }
+    "bank_passbook": { "en": "Bank passbook", "ta": "வங்கிப் புத்தகம்", "note": "used for the name check only", "verification": "n/a" }
   },
 
   "doc_fact_map": {
