@@ -84,7 +84,13 @@ def diff(old, new):
         return {t["task_id"]: t for o in snap["plan"] for t in o["tasks"]}
 
     ot, nt = task_map(old), task_map(new)
-    for tid in nt.keys() - ot.keys():
+    if not ot and nt:  # first plan: one summary line instead of one line per task
+        events.append(_event(f"Plan created: {len(nt)} tasks across {len(new['plan'])} places",
+                             f"திட்டம் உருவானது: {len(new['plan'])} இடங்களில் {len(nt)} பணிகள்", tasks=len(nt)))
+        nt_new = set()
+    else:
+        nt_new = nt.keys() - ot.keys()
+    for tid in nt_new:
         t = nt[tid]
         events.append(_event(f"New task: {t['member_name']} — {t['en']}", f"புதிய பணி: {t['member_name']} — {t['ta']}", task_id=tid))
     for tid in ot.keys() - nt.keys():

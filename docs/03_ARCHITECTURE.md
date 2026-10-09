@@ -111,7 +111,7 @@ scheme-sathi/
 ├── agent.py            # handle(): perceive → decide → act → recompute → diff → reply; events
 ├── pii_guard.py        # removes Aadhaar-like / account-like numbers before any AI call
 ├── voice.py            # /api/stt (Groq Whisper) + /api/tts (edge-tts, MP3 cache in tts_cache/)
-├── numbers.py          # deterministic Tamil/English number parser (cross-check for the AI)
+├── amounts.py          # deterministic Tamil/English number parser (cross-check for the AI)
 ├── accuracy.py         # two-model agreement, evidence check, range checks → accepted / ask
 ├── engine/
 │   ├── __init__.py     # recompute(facts) → snapshot · diff(old, new) → re-plan events
@@ -167,7 +167,7 @@ No AI is right 100% of the time, so every extracted fact must pass **all** of th
 |---|---|---|---|
 | 1 | **Two-model agreement** | Groq `qwen/qwen3.8-27b` and Groq `openai/gpt-oss-120b` run **in parallel** (~1 s total); a fact is accepted only if both return the same path + value (numbers equal, strings equal after normalising). Gemini replaces a model that errors | Disagreement → **clarifying question with both options as buttons** ("Is the income ₹3,00,000 or ₹30,000?") |
 | 2 | **Evidence quote** | Each fact carries `evidence`: the exact words from the user's message; code checks the words appear in the message | Fact dropped (shown as "ignored: no evidence") |
-| 3 | **Number cross-check** | `numbers.py` parses amounts deterministically (லட்சம் / lakh ×1,00,000; ஆயிரம் / thousand ×1,000; "மாசம் / per month" ×12; "2 மாதம் / every two months" ×6 for electricity; ஒன்றரை = 1.5, இரண்டரை = 2.5) and compares with the AI value | Mismatch → clarifying question |
+| 3 | **Number cross-check** | `amounts.py` parses amounts deterministically (லட்சம் / lakh ×1,00,000; ஆயிரம் / thousand ×1,000; "மாசம் / per month" ×12; "2 மாதம் / every two months" ×6 for electricity; ஒன்றரை = 1.5, இரண்டரை = 2.5) and compares with the AI value | Mismatch → clarifying question |
 | 4 | **Range & type checks** | age 0–110 · income 0–1,00,00,000 · acres 0–100 · units 0–20,000 · enums only · member ids exist | Fact dropped + clarifying question |
 | 5 | **Unsure → ask** | The AI lists anything ambiguous in `unclear`; the agent asks about it next | — |
 | 6 | **Visible + correctable** | Accepted facts appear on the family card highlighted for one turn ("✓ I understood: income ₹90,000"); one tap corrects → re-plan | — |
