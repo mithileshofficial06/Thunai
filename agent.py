@@ -65,9 +65,10 @@ def check_events(snap):
         out.append(ev("tool", "🔧", f"check_eligibility  {en}", f"check_eligibility  {ta}"))
     if snap["missing_documents"] or snap["matrix"]:
         miss = ", ".join(f"{d['member_name']}: {d['en']}" for d in snap["missing_documents"]) or "none"
+        miss_ta = ", ".join(f"{d['member_name']}: {d['ta']}" for d in snap["missing_documents"]) or "இல்லை"
         names = ", ".join(f"{m['member_name']} {'🟢' if m['level'] == 'GREEN' else '🟡' if m['level'] == 'YELLOW' else '🔴'}" for m in snap["matrix"])
         out.append(ev("tool", "🔧", f"check_documents  missing: {miss} · names: {names or '—'}",
-                      f"check_documents  இல்லாதவை: {miss} · பெயர்கள்: {names or '—'}"))
+                      f"check_documents  இல்லாதவை: {miss_ta} · பெயர்கள்: {names or '—'}"))
     if snap["plan"]:
         icons = {"bank_branch": "🏦", "esevai_csc": "🏢", "online": "📱", "check": "🔎", "college": "🎓",
                  "aadhaar_centre": "🪪", "local_body": "🏛️", "taluk_office": "🏛️", "school": "🏫"}
@@ -239,6 +240,8 @@ def edit_fact(session, path, value):
     session["facts"], old_v, new_v = patch(session["facts"], path, value)
     if path in session["unconfirmed"]:
         session["unconfirmed"].remove(path)
+    if old_v == new_v:  # nothing changed (e.g. a confirmation tap): no re-plan noise
+        return [ev("tool", "✓", f"confirmed {path}: {new_v}", f"உறுதி செய்யப்பட்டது: {path}: {new_v}")], session["snapshot"]
     events = [ev("tool", "🔧", f"update_facts (edited on the card)  {path}: {old_v if old_v is not None else '—'} → {new_v}",
                  f"குடும்ப அட்டையில் திருத்தம்: {path}: {old_v if old_v is not None else '—'} → {new_v}")]
     old, new = _apply_snapshot(session)
