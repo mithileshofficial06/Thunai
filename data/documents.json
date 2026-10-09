@@ -1,0 +1,134 @@
+{
+  "_meta": {
+    "version": "stage2-final",
+    "description": "Documents, one-time tasks, offices, name-check rules and the trips algorithm used by the Fix layer.",
+    "checked_on": "2026-10-09",
+    "privacy_rule": "Thunai never asks for an Aadhaar number, bank account number or OTP. For documents it only asks 'Do you have it?' and 'What name is printed on it?'."
+  },
+
+  "offices": {
+    "bank_branch":    { "en": "Your bank branch", "ta": "உங்கள் வங்கிக் கிளை", "trip": true },
+    "esevai_csc":     { "en": "e-Sevai centre / Common Service Centre", "ta": "இ-சேவை மையம் / பொது சேவை மையம்", "trip": true },
+    "college":        { "en": "College office", "ta": "கல்லூரி அலுவலகம்", "trip": true },
+    "school":         { "en": "School office (where you studied)", "ta": "பள்ளி அலுவலகம் (படித்த பள்ளி)", "trip": true },
+    "aadhaar_centre": { "en": "Aadhaar enrolment / update centre", "ta": "ஆதார் பதிவு / திருத்த மையம்", "trip": true },
+    "local_body":     { "en": "Panchayat / municipality office", "ta": "ஊராட்சி / நகராட்சி அலுவலகம்", "trip": true },
+    "taluk_office":   { "en": "Taluk office", "ta": "வட்டாட்சியர் அலுவலகம்", "trip": true },
+    "online":         { "en": "Online (on your phone)", "ta": "இணையம் (கைபேசியில்)", "trip": false }
+  },
+
+  "documents": {
+    "aadhaar": {
+      "en": "Aadhaar card", "ta": "ஆதார் அட்டை",
+      "if_missing": { "office": "aadhaar_centre", "en": "Enrol at an Aadhaar centre (many banks, post offices and e-Sevai centres have one).", "ta": "ஆதார் மையத்தில் பதிவு செய்யவும் (பல வங்கிகள், அஞ்சல் அலுவலகங்கள், இ-சேவை மையங்களில் உள்ளது)." },
+      "verification": "general"
+    },
+    "ration_card": {
+      "en": "Ration card (family card)", "ta": "குடும்ப அட்டை",
+      "if_missing": { "office": "esevai_csc", "en": "Apply for a new ration card (TNPDS website or e-Sevai centre). Magalir Urimai requires one.", "ta": "புதிய குடும்ப அட்டைக்கு விண்ணப்பிக்கவும் (TNPDS இணையதளம் அல்லது இ-சேவை மையம்). மகளிர் உரிமைத் தொகைக்கு அவசியம்." },
+      "verification": "official (KMUT FAQ 27: required)"
+    },
+    "bank_account_aadhaar_seeded": {
+      "en": "Active bank account linked (seeded) with Aadhaar", "ta": "ஆதாருடன் இணைக்கப்பட்ட செயலில் உள்ள வங்கிக் கணக்கு",
+      "if_missing": { "office": "bank_branch", "en": "Go to your bank branch with Aadhaar and passbook and ask them to link (seed) Aadhaar for government payments. If the account is inactive, reactivate it or open a new one.", "ta": "ஆதார் மற்றும் வங்கிப் புத்தகத்துடன் வங்கிக் கிளைக்குச் சென்று அரசு பணம் பெற ஆதாரை இணைக்கச் சொல்லவும். கணக்கு செயலற்றதாக இருந்தால் செயல்படுத்தவும் அல்லது புதிய கணக்கு தொடங்கவும்." },
+      "check_in_1_minute": { "en": "myAadhaar → Bank Seeding Status", "ta": "myAadhaar → வங்கி இணைப்பு நிலை", "url": "https://myaadhaar.uidai.gov.in/" },
+      "verification": "official (KMUT FAQ 2, 6, 10, 12)"
+    },
+    "student_bank_account_aadhaar_seeded": {
+      "en": "Student's own bank account, linked with Aadhaar", "ta": "மாணவியின் சொந்த வங்கிக் கணக்கு (ஆதார் இணைக்கப்பட்டது)",
+      "if_missing": { "office": "bank_branch", "en": "Open a zero-balance account in the student's name (Indian Bank, Canara Bank, IOB or SBI; the college can help) and link Aadhaar in the same visit.", "ta": "மாணவியின் பெயரில் பூஜ்ய இருப்புக் கணக்கு தொடங்கவும் (இந்தியன் வங்கி, கனரா, IOB, SBI; கல்லூரி உதவும்) — அதே முறை ஆதாரையும் இணைக்கவும்." },
+      "check_in_1_minute": { "en": "myAadhaar → Bank Seeding Status", "ta": "myAadhaar → வங்கி இணைப்பு நிலை", "url": "https://myaadhaar.uidai.gov.in/" },
+      "verification": "official (TN Social Welfare: DBT + zero-balance accounts via 4 banks)"
+    },
+    "patta_land_record": {
+      "en": "Patta / land record in the farmer's name", "ta": "விவசாயி பெயரில் பட்டா / நில ஆவணம்",
+      "if_missing": { "office": "esevai_csc", "en": "Get the patta/chitta extract (TN e-services or e-Sevai). If the land is still in a parent's name, a name transfer is needed first.", "ta": "பட்டா / சிட்டா நகல் பெறவும் (தமிழ்நாடு இ-சேவை). நிலம் பெற்றோர் பெயரில் இருந்தால் முதலில் பெயர் மாற்றம் தேவை." },
+      "verification": "official (PM-KISAN guidelines 5.1)"
+    },
+    "school_records_6_to_12": {
+      "en": "School records for Classes 6–12 (TC / mark sheets)", "ta": "6–12 வகுப்பு பள்ளிச் சான்றுகள் (மாற்றுச் சான்றிதழ் / மதிப்பெண் சான்றிதழ்)",
+      "if_missing": { "office": "school", "en": "Ask the school office for a copy.", "ta": "பள்ளி அலுவலகத்தில் நகல் கேட்கவும்." },
+      "verification": "general"
+    },
+    "college_admission_proof": {
+      "en": "College admission / ID card", "ta": "கல்லூரி சேர்க்கை / அடையாள அட்டை",
+      "if_missing": { "office": "college", "en": "Ask the college office.", "ta": "கல்லூரி அலுவலகத்தில் கேட்கவும்." },
+      "verification": "official (college certifies status every 6 months)"
+    },
+    "husband_death_certificate": {
+      "en": "Husband's death certificate", "ta": "கணவரின் இறப்புச் சான்றிதழ்",
+      "if_missing": { "office": "local_body", "en": "Apply at the panchayat / municipality where the death was registered.", "ta": "இறப்பு பதிவான ஊராட்சி / நகராட்சி அலுவலகத்தில் விண்ணப்பிக்கவும்." },
+      "verification": "general (standard proof of widowhood — confirm at e-Sevai)"
+    },
+    "bank_passbook": { "en": "Bank passbook (name check only)", "ta": "வங்கிப் புத்தகம் (பெயர் சரிபார்ப்புக்கு மட்டும்)", "verification": "n/a" }
+  },
+
+  "doc_fact_map": {
+    "_rule": "How the engine decides 'has it?' for each document (true / false / UNKNOWN). The person is the scheme's applicant (member scope: that member; PM-KISAN: family.land_owner_member_id).",
+    "aadhaar": "member.docs.aadhaar",
+    "ration_card": "family.has_ration_card",
+    "patta_land_record": "family.land_in_own_name AND member.docs.patta_land_record",
+    "school_records_6_to_12": "member.docs.school_records_6_to_12",
+    "college_admission_proof": "member.docs.college_admission_proof",
+    "husband_death_certificate": "member.docs.husband_death_certificate",
+    "bank_account_aadhaar_seeded": "member.has_own_bank_account AND member.bank_aadhaar_seeded AND member.bank_account_active (false if any is false; UNKNOWN if none false but any unknown)",
+    "student_bank_account_aadhaar_seeded": "same as bank_account_aadhaar_seeded"
+  },
+
+  "tasks": {
+    "pmkisan_ekyc": {
+      "en": "Complete PM-KISAN eKYC", "ta": "பிஎம்-கிசான் eKYC முடிக்கவும்",
+      "done_fact": "member.pmkisan_ekyc_done",
+      "office": "esevai_csc",
+      "how_en": "OTP-based eKYC on the PM-KISAN portal, or biometric eKYC at a CSC / e-Sevai centre.",
+      "how_ta": "பிஎம்-கிசான் இணையதளத்தில் OTP மூலம் அல்லது பொது சேவை / இ-சேவை மையத்தில் கைரேகை மூலம்.",
+      "check_in_1_minute": { "en": "PM-KISAN portal → Know Your Status", "ta": "பிஎம்-கிசான் → உங்கள் நிலையை அறிக", "url": "https://pmkisan.gov.in/" },
+      "verification": "official"
+    }
+  },
+
+  "name_check": {
+    "description": "Compare the names printed on a person's documents. Output per person: GREEN, YELLOW or RED (worst pair wins).",
+    "algorithm": [
+      "1. Clean: uppercase; replace '.', ',', '-' with spaces; collapse spaces; split into tokens.",
+      "2. Phonetic form of each token (for spelling variants): KSH→X, TH→T, DH→D, SH→S, PH→F, W→V, EE→I, OO→U, then collapse repeated letters.",
+      "3. GREEN if the two token sets are equal (order ignored).",
+      "4. Expand initials: a single-letter token is replaced by the father's name (for children) or husband's name (for married women) if it starts with that letter. If the token sets are now equal → YELLOW ('initials vs full name').",
+      "5. If the phonetic token sets are equal, or the phonetic names are equal with all spaces removed (e.g. 'Senthil Kumar' vs 'Senthilkumar') → YELLOW ('spelling / spacing variant').",
+      "6. Else compare the whole phonetic names (spaces removed, tokens sorted) with difflib ratio: ≥ 0.85 → YELLOW ('small spelling difference'), else RED ('different names')."
+    ],
+    "levels": {
+      "GREEN":  { "en": "Names match", "ta": "பெயர்கள் பொருந்துகின்றன" },
+      "YELLOW": { "en": "May cause rejection or payment failure — fix early", "ta": "நிராகரிப்பு / பணம் வராமல் போகலாம் — முன்பே சரிசெய்யவும்" },
+      "RED":    { "en": "Names conflict — fix before applying", "ta": "பெயர்கள் முரண்படுகின்றன — விண்ணப்பிக்கும் முன் சரிசெய்யவும்" }
+    },
+    "fix": {
+      "YELLOW": { "office": null, "en": "Carry both documents and point out the difference when applying; correct it later at an Aadhaar centre or the issuing office.", "ta": "விண்ணப்பிக்கும்போது இரு ஆவணங்களையும் எடுத்துச் சென்று வேறுபாட்டைத் தெரிவிக்கவும்; பின்னர் ஆதார் மையம் / வழங்கிய அலுவலகத்தில் திருத்தவும்." },
+      "RED":    { "office": "aadhaar_centre", "en": "Correct the name before applying — usually at an Aadhaar centre, or at the office that issued the other document.", "ta": "விண்ணப்பிக்கும் முன் பெயரைத் திருத்தவும் — பொதுவாக ஆதார் மையத்தில், அல்லது மற்ற ஆவணம் வழங்கிய அலுவலகத்தில்." }
+    },
+    "claim_rule": "Always shown as a RISK, never as 'will be rejected'.",
+    "test_cases": [
+      { "a": "Murugan S", "b": "S. Murugan", "parent_or_spouse": null, "expect": "GREEN" },
+      { "a": "Selvi M", "b": "M. Selvi", "parent_or_spouse": "Murugan", "expect": "GREEN" },
+      { "a": "Kavya Murugan", "b": "M. Kavya", "parent_or_spouse": "Murugan", "expect": "YELLOW" },
+      { "a": "Lakshmi", "b": "Laxmi", "parent_or_spouse": null, "expect": "YELLOW" },
+      { "a": "Kavya", "b": "Kavitha", "parent_or_spouse": null, "expect": "RED" },
+      { "a": "Senthil Kumar", "b": "Senthilkumar", "parent_or_spouse": null, "expect": "YELLOW" }
+    ]
+  },
+
+  "trips_algorithm": {
+    "problems": [
+      "Use only the ELIGIBLE schemes that are counted in the ₹ total (after exclusive_group and conflicts_with are resolved). For each, for its applicant: each required document whose 'has it?' is false → problem at that document's if_missing.office.",
+      "Bank document UNKNOWN (seeding not known) → a 'check in 1 minute' online task (not a trip, not counted).",
+      "Each required task not done (false or UNKNOWN) → problem at the task's office.",
+      "Name check on the scheme's name_check_documents: YELLOW → problem with no office (handled at application); RED → problem at aadhaar_centre."
+    ],
+    "without_thunai": "Σ over eligible schemes of [ (1 if where_to_apply is a trip office else 0) + number of problems for that scheme ]. Assumption: unprepared, each problem is discovered at a separate visit.",
+    "with_thunai": "Number of distinct trip offices among (all problem offices) ∪ (where_to_apply of eligible schemes). Several tasks at one office = one visit.",
+    "display_en": "Office trips: {without} → {with}",
+    "display_ta": "அலுவலகப் பயணங்கள்: {without} → {with}",
+    "rule": "Always computed by code from the plan — never hard-coded.",
+    "fix_plan_order": "Group problems by office. Order offices by the number of schemes they unblock (desc); online checks first since they take a minute. The bank visit usually comes first because DBT payment depends on it."
+  }
+}

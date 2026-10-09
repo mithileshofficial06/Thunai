@@ -1,0 +1,142 @@
+{
+  "_meta": {
+    "version": "stage2-final",
+    "description": "Question bank for the intake agent. The agent picks the FIRST question in ask_order whose target facts are still unknown AND whose only_if condition holds AND which can still change some verdict. The LLM may rephrase naturally, but the meaning must stay the same; the extracted answer is written into the listed facts.",
+    "rules": [
+      "Ask one question at a time.",
+      "Never ask for an Aadhaar number, bank account number or OTP.",
+      "If the user already said something that answers a later question, extract it and skip that question.",
+      "Member questions use {name}; ask them once per relevant member.",
+      "If the user says 'don't know', leave the fact UNKNOWN (the verdict shows NEED_INFO or a 'check in 1 minute' task)."
+    ]
+  },
+
+  "ask_order": [
+    "household",
+    "ration_card",
+    "ration_card_head",
+    "kmut_chosen",
+    "land",
+    "land_cutoff",
+    "income",
+    "exclusion_sweep",
+    "electricity",
+    "studies",
+    "widow_destitute",
+    "bank_status",
+    "pmkisan_ekyc",
+    "documents_have",
+    "names_as_printed"
+  ],
+
+  "questions": {
+    "household": {
+      "en": "Who lives in your home? Tell me each person's name, how they are related to you, and their age.",
+      "ta": "உங்கள் வீட்டில் யார் யார் இருக்கிறார்கள்? ஒவ்வொருவரின் பெயர், உங்களுக்கு என்ன உறவு, வயது சொல்லுங்கள்.",
+      "sets": ["members[].name", "members[].relation", "members[].age", "members[].gender", "members[].marital_status", "members[].spouse_of"],
+      "type": "free_text",
+      "extract_note": "Infer gender and marital status from relation words (wife/husband/daughter/widow) and spouse_of between husband and wife; ask only if unclear."
+    },
+    "ration_card": {
+      "en": "Does your family have a ration card? If yes, what type is it — PHH, AAY, or NPHH?",
+      "ta": "உங்கள் குடும்பத்திற்கு குடும்ப அட்டை (ரேஷன் கார்டு) உள்ளதா? இருந்தால் அது எந்த வகை — PHH, AAY, அல்லது NPHH?",
+      "sets": ["family.has_ration_card", "family.ration_card_type", "members[].on_ration_card"],
+      "type": "choice", "options": ["PHH", "PHH-AAY", "NPHH", "NPHH-S", "NPHH-NC", "no_card", "dont_know"],
+      "extract_note": "Assume all household members are on the card unless the user says otherwise."
+    },
+    "ration_card_head": {
+      "only_if": "family.has_ration_card == true",
+      "en": "Whose name is written as the head of the family on the ration card?",
+      "ta": "குடும்ப அட்டையில் குடும்பத் தலைவராக யார் பெயர் உள்ளது?",
+      "sets": ["family.ration_card_head_member_id"],
+      "type": "member_choice"
+    },
+    "kmut_chosen": {
+      "only_if": "derived KMUT head is UNKNOWN because the male head has no wife on the card",
+      "en": "Which woman aged 21 or above in your family will apply for Magalir Urimai?",
+      "ta": "உங்கள் குடும்பத்தில் 21 வயது நிரம்பிய எந்தப் பெண் மகளிர் உரிமைத் தொகைக்கு விண்ணப்பிப்பார்?",
+      "sets": ["family.kmut_chosen_member_id"],
+      "type": "member_choice"
+    },
+    "land": {
+      "en": "Does your family own any farm land? If yes, how many acres of wet land and dry land, and is the patta in whose name?",
+      "ta": "உங்கள் குடும்பத்திற்கு விவசாய நிலம் உள்ளதா? இருந்தால் நன்செய், புன்செய் எத்தனை ஏக்கர்? பட்டா யார் பெயரில் உள்ளது?",
+      "sets": ["family.owns_cultivable_land", "family.wet_land_acres", "family.dry_land_acres", "family.land_in_own_name", "family.land_owner_member_id"],
+      "type": "free_text",
+      "extract_note": "If no land: owns_cultivable_land=false, wet=0, dry=0. If the patta is in a deceased parent's name: land_in_own_name=false."
+    },
+    "land_cutoff": {
+      "only_if": "family.owns_cultivable_land == true",
+      "en": "Did you get this land after February 2019 by buying it (not by inheritance)?",
+      "ta": "இந்த நிலத்தை பிப்ரவரி 2019க்குப் பிறகு வாங்கினீர்களா (வாரிசுரிமையாக அல்ல)?",
+      "sets": ["family.land_acquired_after_2019_02_01_not_inherited"],
+      "type": "yes_no"
+    },
+    "income": {
+      "en": "Roughly how much does the whole family earn in a year?",
+      "ta": "முழு குடும்பமும் ஆண்டுக்குச் சுமார் எவ்வளவு சம்பாதிக்கிறது?",
+      "sets": ["family.annual_income"],
+      "type": "number_inr"
+    },
+    "exclusion_sweep": {
+      "en": "Does anyone in the family do any of these: government / PSU / bank / cooperative job or pension, pay income tax or professional tax, own a car / jeep / tractor, hold an elected post (other than ward member), run a business with GST turnover above ₹50 lakh, or already get an old-age / widow / welfare-board pension?",
+      "ta": "குடும்பத்தில் யாரேனும் இவற்றில் ஏதாவது உண்டா: அரசு / பொதுத்துறை / வங்கி / கூட்டுறவு வேலை அல்லது ஓய்வூதியம், வருமான வரி / தொழில் வரி செலுத்துதல், கார் / ஜீப் / டிராக்டர், தேர்ந்தெடுக்கப்பட்ட பதவி (வார்டு உறுப்பினர் தவிர), ₹50 லட்சத்திற்கு மேல் GST விற்பனையுள்ள தொழில், அல்லது ஏற்கனவே முதியோர் / விதவை / நலவாரிய ஓய்வூதியம்?",
+      "sets": ["family.govt_or_psu_or_bank_or_coop_employee_or_pensioner", "family.govt_pension_10000_or_more", "family.income_tax_payer_last_year", "family.professional_tax_payer", "family.owns_four_wheeler_personal_use", "family.elected_representative", "family.gst_turnover_over_50_lakh", "family.receives_social_security_pension", "family.registered_practising_professional", "family.nri"],
+      "type": "yes_no_then_which",
+      "extract_note": "If 'none of these' → set all listed facts false (also registered_practising_professional and nri false unless mentioned). If yes → ask which, set only those true."
+    },
+    "electricity": {
+      "only_if": "a KMUT head of family exists",
+      "en": "About how many units of electricity does your house use in a year? (Your EB bill shows units every two months — multiply by 6.)",
+      "ta": "உங்கள் வீட்டில் ஆண்டுக்கு சுமார் எத்தனை யூனிட் மின்சாரம் பயன்படுத்துகிறீர்கள்? (மின் கட்டண அட்டையில் இரண்டு மாத யூனிட் இருக்கும் — 6ஆல் பெருக்கவும்.)",
+      "sets": ["family.electricity_units_per_year"],
+      "type": "number"
+    },
+    "studies": {
+      "only_if": "any female member aged 16–30",
+      "en": "Is {name} studying in college, diploma or ITI now? Is it her first course, regular (not distance), and did she study Classes 6 to 12 in a government school?",
+      "ta": "{name} இப்போது கல்லூரி / டிப்ளமோ / ஐடிஐ படிக்கிறாரா? இது அவரது முதல் படிப்பா, நேரடி வகுப்பா (தொலைதூரம் அல்ல)? 6 முதல் 12ஆம் வகுப்பு வரை அரசுப் பள்ளியில் படித்தாரா?",
+      "sets": ["member.current_education", "member.is_first_higher_ed_course", "member.education_mode", "member.studied_class_6_to_12_in"],
+      "type": "free_text",
+      "extract_note": "If not studying: current_education='none'. Members not asked default to 'none'."
+    },
+    "widow_destitute": {
+      "only_if": "any member widowed, or aged 60+",
+      "en": "Does {name} have children or relatives who support her/him? Roughly what is the value of any land or house she/he owns (a free government house doesn't count)?",
+      "ta": "{name} அவர்களை ஆதரிக்கும் பிள்ளைகள் அல்லது உறவினர் உள்ளனரா? அவர் பெயரில் உள்ள நிலம் / வீட்டின் மதிப்பு சுமார் எவ்வளவு (அரசு வழங்கிய இலவச வீடு கணக்கில் இல்லை)?",
+      "sets": ["member.is_destitute", "member.immovable_property_value"],
+      "type": "free_text",
+      "extract_note": "No supporting children/relatives → is_destitute=true (shown as 'final assessment by Revenue officials')."
+    },
+    "bank_status": {
+      "only_if": "member is the applicant of an ELIGIBLE or NEED_INFO scheme",
+      "en": "Does {name} have a bank account of their own? Is Aadhaar linked to it, and is it active? (If you're not sure about the link, I'll show you how to check in 1 minute.)",
+      "ta": "{name} அவர்களுக்குச் சொந்த வங்கிக் கணக்கு உள்ளதா? அதில் ஆதார் இணைக்கப்பட்டுள்ளதா, கணக்கு செயலில் உள்ளதா? (இணைப்பு தெரியவில்லை என்றால் 1 நிமிடத்தில் சரிபார்க்கும் வழியைக் காட்டுகிறேன்.)",
+      "sets": ["member.has_own_bank_account", "member.bank_aadhaar_seeded", "member.bank_account_active"],
+      "type": "free_text"
+    },
+    "pmkisan_ekyc": {
+      "only_if": "pm_kisan is ELIGIBLE",
+      "en": "Has {name} already registered for PM-KISAN and completed eKYC?",
+      "ta": "{name} பிஎம்-கிசானில் ஏற்கனவே பதிவு செய்து eKYC முடித்துள்ளாரா?",
+      "sets": ["member.pmkisan_ekyc_done"],
+      "type": "yes_no_dontknow"
+    },
+    "documents_have": {
+      "only_if": "a scheme is ELIGIBLE",
+      "en": "For {name}: do you have these documents? {document_list}",
+      "ta": "{name} அவர்களுக்கு இந்த ஆவணங்கள் உள்ளனவா? {document_list}",
+      "sets": ["member.docs.*"],
+      "type": "checklist",
+      "extract_note": "Only list documents required by that member's ELIGIBLE schemes (from schemes.json required_documents), excluding bank/ration facts already known."
+    },
+    "names_as_printed": {
+      "only_if": "a scheme is ELIGIBLE",
+      "en": "Please type {name}'s name exactly as printed on each of these: {document_list}. (Only the name — no numbers.)",
+      "ta": "{name} அவர்களின் பெயரை இந்த ஒவ்வொரு ஆவணத்திலும் அச்சிடப்பட்டுள்ளபடியே எழுதுங்கள்: {document_list}. (பெயர் மட்டும் — எண்கள் வேண்டாம்.)",
+      "sets": ["member.names_as_printed.*"],
+      "type": "per_document_text",
+      "extract_note": "Only the documents in name_check_documents of that member's ELIGIBLE schemes. Shown as a small form in the Consistency Matrix, not a chat question."
+    }
+  }
+}

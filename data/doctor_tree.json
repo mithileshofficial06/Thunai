@@ -1,0 +1,273 @@
+{
+  "_meta": {
+    "description": "Rejection Doctor decision trees. Each tree asks yes/no questions and ends in an outcome with: likely cause, how to verify it officially, fix steps, office, and whether an appeal letter is drafted. Thunai cannot see government records — outcomes are 'most likely cause', never certainty.",
+    "checked_on": "2026-10-09",
+    "answer_values": ["yes", "no", "dont_know"],
+    "dont_know_rule": "'dont_know' follows the 'no' branch but the outcome adds the 'check in 1 minute' step first.",
+    "letter_fallback_rule": "If an outcome's draft_letter template is not built yet (e.g. bank_seeding_request is stretch S2), hide the letter button and show only cause, verify and fix steps. Never show an empty or broken letter."
+  },
+
+  "entry_points": [
+    { "id": "kmut_payment_stopped", "en": "My Magalir Urimai ₹1,000 stopped / didn't come", "ta": "மகளிர் உரிமைத் தொகை ₹1,000 வரவில்லை / நின்றுவிட்டது", "tree": "kmut_payment" },
+    { "id": "kmut_rejected", "en": "My Magalir Urimai application was rejected", "ta": "மகளிர் உரிமைத் தொகை விண்ணப்பம் நிராகரிக்கப்பட்டது", "tree": "kmut_rejected" },
+    { "id": "pmkisan_stopped", "en": "My PM-KISAN instalment didn't come", "ta": "பிஎம்-கிசான் தவணை வரவில்லை", "tree": "pmkisan_payment" },
+    { "id": "pension_rejected", "en": "My pension application was rejected", "ta": "ஓய்வூதிய விண்ணப்பம் நிராகரிக்கப்பட்டது", "tree": "pension_rejected" }
+  ],
+
+  "trees": {
+    "kmut_payment": {
+      "start": "q_selected_sms",
+      "nodes": {
+        "q_selected_sms": {
+          "type": "question",
+          "en": "Did you ever get an SMS saying you were selected, or receive the ₹1,000 before?",
+          "ta": "நீங்கள் தேர்வானதாக குறுஞ்செய்தி வந்ததா, அல்லது முன்பு ₹1,000 வந்ததா?",
+          "yes": "q_seeded", "no": "o_check_status"
+        },
+        "q_seeded": {
+          "type": "question",
+          "en": "Is your Aadhaar linked to the bank account you use now? (Check: myAadhaar → Bank Seeding Status)",
+          "ta": "இப்போது பயன்படுத்தும் வங்கிக் கணக்குடன் ஆதார் இணைக்கப்பட்டுள்ளதா? (சரிபார்க்க: myAadhaar → வங்கி இணைப்பு நிலை)",
+          "yes": "q_active", "no": "o_seeding"
+        },
+        "q_active": {
+          "type": "question",
+          "en": "Is that bank account active (no 'inactive' or 'blocked' message, used recently)?",
+          "ta": "அந்த வங்கிக் கணக்கு செயலில் உள்ளதா ('inactive' / 'blocked' செய்தி இல்லை)?",
+          "yes": "q_changes", "no": "o_inactive"
+        },
+        "q_changes": {
+          "type": "question",
+          "en": "Did anything change recently: a family member got a government job or pension, bought a car/tractor, or started paying income tax?",
+          "ta": "சமீபத்தில் மாற்றம் உண்டா: குடும்பத்தில் அரசு வேலை / ஓய்வூதியம், கார் / டிராக்டர் வாங்கியது, அல்லது வருமான வரி செலுத்தத் தொடங்கியது?",
+          "yes": "o_reverification", "no": "o_passbook_and_grievance"
+        },
+        "o_check_status": {
+          "type": "outcome",
+          "cause_en": "Your application may still be under review, or may have been rejected.",
+          "cause_ta": "உங்கள் விண்ணப்பம் பரிசீலனையில் இருக்கலாம் அல்லது நிராகரிக்கப்பட்டிருக்கலாம்.",
+          "verify_en": "Log in on the KMUT website with your Aadhaar to see the status and the rejection reason, or call 1913.",
+          "verify_ta": "KMUT இணையதளத்தில் ஆதார் மூலம் உள்நுழைந்து நிலை மற்றும் நிராகரிப்பு காரணத்தைப் பார்க்கவும், அல்லது 1913 அழைக்கவும்.",
+          "fix_en": ["If rejected, use 'My application was rejected' to check the appeal deadline."],
+          "fix_ta": ["நிராகரிக்கப்பட்டிருந்தால், 'விண்ணப்பம் நிராகரிக்கப்பட்டது' பகுதியில் மேல்முறையீட்டு காலக்கெடுவைப் பார்க்கவும்."],
+          "office": "online", "draft_letter": null,
+          "source": "KMUT FAQ 1, 3 (official)"
+        },
+        "o_seeding": {
+          "type": "outcome",
+          "cause_en": "Most likely: your Aadhaar is not linked to an active bank account, or is linked to a different (old) account, so the payment cannot reach you.",
+          "cause_ta": "பெரும்பாலும்: உங்கள் ஆதார் செயலில் உள்ள வங்கிக் கணக்குடன் இணைக்கப்படவில்லை, அல்லது பழைய வேறு கணக்குடன் இணைந்துள்ளது — அதனால் பணம் வரவில்லை.",
+          "verify_en": "myAadhaar → Bank Seeding Status shows which bank your Aadhaar is linked to.",
+          "verify_ta": "myAadhaar → வங்கி இணைப்பு நிலை — ஆதார் எந்த வங்கியுடன் இணைந்துள்ளது எனக் காட்டும்.",
+          "fix_en": ["Go to the bank branch where you want the money, with Aadhaar and passbook.", "Ask them to link (seed) your Aadhaar for government (DBT) payments and give you an acknowledgement."],
+          "fix_ta": ["பணம் வர வேண்டிய வங்கிக் கிளைக்கு ஆதார் மற்றும் வங்கிப் புத்தகத்துடன் செல்லவும்.", "அரசு (DBT) பணம் பெற ஆதாரை இணைக்கச் சொல்லி ஒப்புகைச் சீட்டு பெறவும்."],
+          "office": "bank_branch", "draft_letter": "bank_seeding_request",
+          "source": "KMUT FAQ 2, 6 (official)"
+        },
+        "o_inactive": {
+          "type": "outcome",
+          "cause_en": "Most likely: the bank account is inactive or blocked, so the payment bounces.",
+          "cause_ta": "பெரும்பாலும்: வங்கிக் கணக்கு செயலற்றது அல்லது முடக்கப்பட்டுள்ளது — அதனால் பணம் திரும்புகிறது.",
+          "verify_en": "Ask your bank branch about the account status.",
+          "verify_ta": "கணக்கின் நிலையை வங்கிக் கிளையில் கேட்கவும்.",
+          "fix_en": ["Visit the bank to reactivate the account, or open a new account and link Aadhaar to it."],
+          "fix_ta": ["வங்கிக்குச் சென்று கணக்கைச் செயல்படுத்தவும், அல்லது புதிய கணக்கு தொடங்கி ஆதாரை இணைக்கவும்."],
+          "office": "bank_branch", "draft_letter": "bank_seeding_request",
+          "source": "KMUT FAQ 10, 12 (official)"
+        },
+        "o_reverification": {
+          "type": "outcome",
+          "cause_en": "Possibly: a change in the family's situation now matches an exclusion rule, and the payment was stopped after re-verification.",
+          "cause_ta": "ஒருவேளை: குடும்ப நிலையில் ஏற்பட்ட மாற்றம் விலக்கு விதிக்குப் பொருந்துவதால் மறுசரிபார்ப்பில் பணம் நிறுத்தப்பட்டிருக்கலாம்.",
+          "verify_en": "Log in on the KMUT website with Aadhaar to see the reason, or call 1913.",
+          "verify_ta": "KMUT இணையதளத்தில் ஆதார் மூலம் காரணத்தைப் பார்க்கவும், அல்லது 1913 அழைக்கவும்.",
+          "fix_en": ["A helper reviews this case with you before any appeal."],
+          "fix_ta": ["மேல்முறையீட்டுக்கு முன் உதவியாளர் உங்களுடன் இதைப் பரிசீலிப்பார்."],
+          "office": "online", "draft_letter": null, "escalate_to_helper": true,
+          "source": "KMUT FAQ 25 exclusions (official); stop-after-change is an inference"
+        },
+        "o_passbook_and_grievance": {
+          "type": "outcome",
+          "cause_en": "Cause not clear from your answers.",
+          "cause_ta": "உங்கள் பதில்களிலிருந்து காரணம் தெளிவாக இல்லை.",
+          "verify_en": "Ask your bank to update the passbook to see whether the ₹1,000 was credited; check status on the KMUT website.",
+          "verify_ta": "₹1,000 வந்ததா என அறிய வங்கியில் புத்தகத்தைப் பதிவு செய்யவும்; KMUT இணையதளத்தில் நிலையைப் பார்க்கவும்.",
+          "fix_en": ["Raise a complaint on the KMUT grievance portal or call 1913."],
+          "fix_ta": ["KMUT குறைதீர்ப்பு இணையதளத்தில் புகார் அளிக்கவும் அல்லது 1913 அழைக்கவும்."],
+          "office": "online", "draft_letter": "grievance", "escalate_to_helper": true,
+          "source": "KMUT FAQ 2 (official); grievance link on kmut.tn.gov.in"
+        }
+      }
+    },
+
+    "kmut_rejected": {
+      "start": "q_within_30",
+      "nodes": {
+        "q_within_30": {
+          "type": "question",
+          "en": "Did you get the rejection SMS within the last 30 days?",
+          "ta": "நிராகரிப்பு குறுஞ்செய்தி கடந்த 30 நாட்களுக்குள் வந்ததா?",
+          "yes": "q_know_reason", "no": "o_window_passed"
+        },
+        "q_know_reason": {
+          "type": "question",
+          "en": "Do you know the rejection reason? (KMUT website → login with Aadhaar)",
+          "ta": "நிராகரிப்பு காரணம் தெரியுமா? (KMUT இணையதளம் → ஆதார் மூலம் உள்நுழைவு)",
+          "yes": "o_appeal", "no": "o_find_reason_then_appeal"
+        },
+        "o_appeal": {
+          "type": "outcome",
+          "cause_en": "You can appeal: the rules engine checks whether the stated reason actually applies to your family.",
+          "cause_ta": "நீங்கள் மேல்முறையீடு செய்யலாம்: குறிப்பிட்ட காரணம் உங்கள் குடும்பத்திற்குப் பொருந்துகிறதா என விதிகள் சரிபார்க்கும்.",
+          "verify_en": "Compare the reason with your family card on screen.",
+          "verify_ta": "காரணத்தை உங்கள் குடும்ப அட்டையுடன் திரையில் ஒப்பிடவும்.",
+          "fix_en": ["Appeal within 30 days of the SMS, only through an e-Sevai centre, to the Revenue Divisional Officer, with proof of eligibility."],
+          "fix_ta": ["குறுஞ்செய்தி வந்த 30 நாட்களுக்குள், இ-சேவை மையம் வழியாக மட்டும், தகுதிக்கான ஆதாரத்துடன் வருவாய் கோட்ட அலுவலருக்கு மேல்முறையீடு செய்யவும்."],
+          "office": "esevai_csc", "draft_letter": "appeal_kmut", "needs_helper_approval": true,
+          "source": "KMUT FAQ 4, 5, 18, 19 (official)"
+        },
+        "o_find_reason_then_appeal": {
+          "type": "outcome",
+          "cause_en": "First find the exact reason; the appeal must answer it.",
+          "cause_ta": "முதலில் சரியான காரணத்தை அறியவும்; மேல்முறையீடு அதற்குப் பதிலளிக்க வேண்டும்.",
+          "verify_en": "KMUT website → login with Aadhaar → see reason. Or call 1913.",
+          "verify_ta": "KMUT இணையதளம் → ஆதார் மூலம் உள்நுழைவு → காரணம். அல்லது 1913.",
+          "fix_en": ["Note the reason, come back, and Thunai will draft the appeal.", "Deadline: 30 days from the SMS."],
+          "fix_ta": ["காரணத்தைக் குறித்துக்கொண்டு திரும்பி வாருங்கள்; துணை மேல்முறையீட்டைத் தயாரிக்கும்.", "காலக்கெடு: குறுஞ்செய்தியிலிருந்து 30 நாட்கள்."],
+          "office": "online", "draft_letter": null,
+          "source": "KMUT FAQ 1, 5 (official)"
+        },
+        "o_window_passed": {
+          "type": "outcome",
+          "cause_en": "The 30-day appeal window has passed.",
+          "cause_ta": "30 நாள் மேல்முறையீட்டு காலக்கெடு முடிந்துவிட்டது.",
+          "verify_en": "Check the KMUT website for announcements of new application dates.",
+          "verify_ta": "புதிய விண்ணப்பத் தேதி அறிவிப்புகளுக்கு KMUT இணையதளத்தைப் பார்க்கவும்.",
+          "fix_en": ["Fix the reason now (Thunai lists the tasks).", "Apply again through e-Sevai when the government announces new dates; Thunai will remind you."],
+          "fix_ta": ["காரணத்தை இப்போதே சரிசெய்யவும் (துணை பணிகளைப் பட்டியலிடும்).", "அரசு புதிய தேதி அறிவிக்கும்போது இ-சேவை வழியாக மீண்டும் விண்ணப்பிக்கவும்; துணை நினைவூட்டும்."],
+          "office": "esevai_csc", "draft_letter": null,
+          "source": "KMUT FAQ 8, 18 (official)"
+        }
+      }
+    },
+
+    "pmkisan_payment": {
+      "start": "q_ekyc",
+      "nodes": {
+        "q_ekyc": {
+          "type": "question",
+          "en": "Is your PM-KISAN eKYC completed? (PM-KISAN portal → Know Your Status)",
+          "ta": "உங்கள் பிஎம்-கிசான் eKYC முடிந்ததா? (பிஎம்-கிசான் → உங்கள் நிலையை அறிக)",
+          "yes": "q_seeded", "no": "o_ekyc"
+        },
+        "q_seeded": {
+          "type": "question",
+          "en": "Is your Aadhaar linked to an active bank account? (myAadhaar → Bank Seeding Status)",
+          "ta": "ஆதார் செயலில் உள்ள வங்கிக் கணக்குடன் இணைக்கப்பட்டுள்ளதா? (myAadhaar → வங்கி இணைப்பு நிலை)",
+          "yes": "q_land_change", "no": "o_seeding"
+        },
+        "q_land_change": {
+          "type": "question",
+          "en": "Did you get the land after 01-02-2019 (not by inheritance), or does more than one person in your family receive PM-KISAN?",
+          "ta": "01-02-2019க்குப் பிறகு (வாரிசுரிமை தவிர) நிலம் பெற்றீர்களா, அல்லது குடும்பத்தில் ஒருவருக்கு மேல் பிஎம்-கிசான் பெறுகிறார்களா?",
+          "yes": "o_physical_verification", "no": "o_know_status"
+        },
+        "o_ekyc": {
+          "type": "outcome",
+          "cause_en": "Most likely: eKYC is not completed. eKYC is mandatory for PM-KISAN payments.",
+          "cause_ta": "பெரும்பாலும்: eKYC முடிக்கப்படவில்லை. பிஎம்-கிசான் பணத்திற்கு eKYC கட்டாயம்.",
+          "verify_en": "PM-KISAN portal → Know Your Status.",
+          "verify_ta": "பிஎம்-கிசான் இணையதளம் → உங்கள் நிலையை அறிக.",
+          "fix_en": ["Do OTP eKYC on the PM-KISAN portal, or biometric eKYC at a CSC / e-Sevai centre."],
+          "fix_ta": ["பிஎம்-கிசான் இணையதளத்தில் OTP eKYC, அல்லது பொது சேவை / இ-சேவை மையத்தில் கைரேகை eKYC."],
+          "office": "esevai_csc", "draft_letter": null,
+          "source": "pmkisan.gov.in (official)"
+        },
+        "o_seeding": {
+          "type": "outcome",
+          "cause_en": "Most likely: Aadhaar is not linked to an active bank account, so the payment cannot be credited.",
+          "cause_ta": "பெரும்பாலும்: ஆதார் செயலில் உள்ள வங்கிக் கணக்குடன் இணைக்கப்படவில்லை.",
+          "verify_en": "myAadhaar → Bank Seeding Status.",
+          "verify_ta": "myAadhaar → வங்கி இணைப்பு நிலை.",
+          "fix_en": ["Visit your bank branch with Aadhaar and passbook and ask for Aadhaar seeding for DBT."],
+          "fix_ta": ["ஆதார், வங்கிப் புத்தகத்துடன் வங்கிக்குச் சென்று DBTக்கு ஆதார் இணைப்பு கேட்கவும்."],
+          "office": "bank_branch", "draft_letter": "bank_seeding_request",
+          "source": "General DBT practice; KMUT FAQ 6 states the same requirement for state DBT"
+        },
+        "o_physical_verification": {
+          "type": "outcome",
+          "cause_en": "Possibly: your case is held for physical verification (land acquired after 01-02-2019, or more than one family member receiving).",
+          "cause_ta": "ஒருவேளை: நேரடி சரிபார்ப்புக்காக நிறுத்தி வைக்கப்பட்டுள்ளது.",
+          "verify_en": "PM-KISAN portal → Know Your Status; ask the agriculture office.",
+          "verify_ta": "பிஎம்-கிசான் → உங்கள் நிலையை அறிக; வேளாண் அலுவலகத்தில் கேட்கவும்.",
+          "fix_en": ["Keep land documents ready for verification.", "A helper reviews this case."],
+          "fix_ta": ["சரிபார்ப்புக்கு நில ஆவணங்களைத் தயாராக வைக்கவும்.", "உதவியாளர் இதைப் பரிசீலிப்பார்."],
+          "office": "online", "draft_letter": null, "escalate_to_helper": true,
+          "source": "PM-KISAN guidelines 5.2 and portal notice (official)"
+        },
+        "o_know_status": {
+          "type": "outcome",
+          "cause_en": "Cause not clear from your answers.",
+          "cause_ta": "உங்கள் பதில்களிலிருந்து காரணம் தெளிவாக இல்லை.",
+          "verify_en": "PM-KISAN portal → Know Your Status shows the reason; the Kisan e-Mitra chatbot can also explain it in Tamil.",
+          "verify_ta": "பிஎம்-கிசான் → உங்கள் நிலையை அறிக — காரணத்தைக் காட்டும்; கிசான் இ-மித்ரா தமிழிலும் விளக்கும்.",
+          "fix_en": ["Note the reason shown and come back; Thunai will plan the fix."],
+          "fix_ta": ["காட்டப்படும் காரணத்தைக் குறித்துக்கொண்டு திரும்பி வாருங்கள்."],
+          "office": "online", "draft_letter": null,
+          "source": "pmkisan.gov.in; Kisan e-Mitra (official)"
+        }
+      }
+    },
+
+    "pension_rejected": {
+      "start": "q_reason_known",
+      "nodes": {
+        "q_reason_known": {
+          "type": "question",
+          "en": "Were you told the reason for rejection?",
+          "ta": "நிராகரிப்புக்கான காரணம் தெரிவிக்கப்பட்டதா?",
+          "yes": "q_docs_reason", "no": "o_ask_reason"
+        },
+        "q_docs_reason": {
+          "type": "question",
+          "en": "Was the reason a missing or mismatched document (for example the husband's death certificate)?",
+          "ta": "காரணம் விடுபட்ட அல்லது பொருந்தாத ஆவணமா (உதாரணம்: கணவரின் இறப்புச் சான்றிதழ்)?",
+          "yes": "o_fix_doc_and_petition", "no": "o_petition"
+        },
+        "o_ask_reason": {
+          "type": "outcome",
+          "cause_en": "Reason unknown.",
+          "cause_ta": "காரணம் தெரியவில்லை.",
+          "verify_en": "Check the application status on tnesevai.tn.gov.in or ask the Taluk office (Special Tahsildar, Social Security Scheme).",
+          "verify_ta": "tnesevai.tn.gov.in இல் நிலையைப் பார்க்கவும் அல்லது வட்டாட்சியர் அலுவலகத்தில் (தனி வட்டாட்சியர், சமூகப் பாதுகாப்புத் திட்டம்) கேட்கவும்.",
+          "fix_en": ["Come back with the reason; Thunai will draft a petition."],
+          "fix_ta": ["காரணத்துடன் திரும்பி வாருங்கள்; துணை மனுவைத் தயாரிக்கும்."],
+          "office": "taluk_office", "draft_letter": null,
+          "source": "CRA site: tnesevai application, Special Tahsildar (official); grievance route general practice"
+        },
+        "o_fix_doc_and_petition": {
+          "type": "outcome",
+          "cause_en": "The application lacked a required document.",
+          "cause_ta": "விண்ணப்பத்தில் தேவையான ஆவணம் இல்லை.",
+          "verify_en": "Thunai's document list shows what is missing and where to get it.",
+          "verify_ta": "துணையின் ஆவணப் பட்டியல் எது இல்லை, எங்கு பெறலாம் எனக் காட்டும்.",
+          "fix_en": ["Get the missing document (see the fix plan).", "Submit a petition with the document to the Special Tahsildar (Social Security Scheme), or re-apply through e-Sevai."],
+          "fix_ta": ["விடுபட்ட ஆவணத்தைப் பெறவும் (திட்டத்தைப் பார்க்கவும்).", "ஆவணத்துடன் தனி வட்டாட்சியருக்கு (சமூகப் பாதுகாப்புத் திட்டம்) மனு அளிக்கவும், அல்லது இ-சேவை வழியாக மீண்டும் விண்ணப்பிக்கவும்."],
+          "office": "taluk_office", "draft_letter": "appeal_pension", "needs_helper_approval": true,
+          "source": "General practice — verify"
+        },
+        "o_petition": {
+          "type": "outcome",
+          "cause_en": "The rules engine checks whether the stated reason applies to you.",
+          "cause_ta": "குறிப்பிட்ட காரணம் உங்களுக்குப் பொருந்துகிறதா என விதிகள் சரிபார்க்கும்.",
+          "verify_en": "Compare the reason with your details on screen.",
+          "verify_ta": "காரணத்தை திரையில் உள்ள விவரங்களுடன் ஒப்பிடவும்.",
+          "fix_en": ["Submit a petition with proof to the Special Tahsildar (Social Security Scheme) or at the Collectorate grievance day."],
+          "fix_ta": ["ஆதாரத்துடன் தனி வட்டாட்சியரிடம் (சமூகப் பாதுகாப்புத் திட்டம்) அல்லது ஆட்சியர் அலுவலக குறைதீர்க்கும் நாளில் மனு அளிக்கவும்."],
+          "office": "taluk_office", "draft_letter": "appeal_pension", "needs_helper_approval": true,
+          "source": "General practice — verify"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "version": "stage2-final",
+    "description": "Scripted demo personas (all fictional). The 'Load Murugan family' button feeds scripted_answers through the real agent so the demo cannot stall. 'facts' is what the agent should end up with — used as the test oracle.",
+    "expected_results_checked_on": "2026-10-09 (dry-run against schemes.json + documents.json)"
+  },
+
+  "murugan_family": {
+    "label_en": "Murugan family (Villupuram)",
+    "label_ta": "முருகன் குடும்பம் (விழுப்புரம்)",
+    "scripted_answers_ta": [
+      "எங்க வீட்ல நான் முருகன், என் மனைவி செல்வி, மகள் காவ்யா — மூணு பேர் இருக்கோம். எனக்கு 52 வயசு, செல்விக்கு 47, காவ்யாவுக்கு 18.",
+      "ரேஷன் கார்டு இருக்கு, PHH கார்டு. குடும்பத் தலைவரா என் பேர் தான் இருக்கு.",
+      "ஒன்றரை ஏக்கர் புன்செய் நிலம் இருக்கு. பட்டா என் பேர்ல தான். அப்பா கிட்ட இருந்து வந்த நிலம்.",
+      "வருஷத்துக்கு சுமார் 90,000 ரூபாய் வரும்.",
+      "இதுல எதுவும் இல்ல. அரசு வேலை, கார், டிராக்டர், ஓய்வூதியம் எதுவும் இல்ல.",
+      "கரண்ட் வருஷத்துக்கு சுமார் 1,200 யூனிட் வரும்.",
+      "காவ்யா 6ல இருந்து 12 வரை அரசுப் பள்ளியில படிச்சா. இப்போ B.Sc முதல் வருஷம் சேர்ந்திருக்கா, நேரடி வகுப்பு. இதுதான் அவளோட முதல் படிப்பு.",
+      "என் வங்கிக் கணக்குல ஆதார் இணைச்சிருக்கு. செல்வி கணக்குல ஆதார் இணைக்கல. காவ்யாவுக்கு தனி வங்கிக் கணக்கு இல்ல.",
+      "பிஎம்-கிசான்ல நான் இன்னும் பதிவு பண்ணல."
+    ],
+    "scripted_answers_en": [
+      "At home it's me, Murugan, my wife Selvi and our daughter Kavya. I'm 52, Selvi is 47 and Kavya is 18.",
+      "We have a PHH ration card. My name is on it as head of the family.",
+      "We have 1.5 acres of dry land. The patta is in my name; it came from my father.",
+      "We earn about ₹90,000 a year.",
+      "None of these. No government job, car, tractor or pension.",
+      "About 1,200 units of electricity a year.",
+      "Kavya studied Classes 6 to 12 in a government school. She has just joined first-year B.Sc, regular classes. It's her first course.",
+      "My bank account has Aadhaar linked. Selvi's account doesn't. Kavya has no bank account of her own.",
+      "I haven't registered for PM-KISAN yet."
+    ],
+    "facts": {
+      "family": {
+        "district": "Villupuram",
+        "has_ration_card": true, "ration_card_type": "PHH", "ration_card_head_member_id": "m1", "kmut_chosen_member_id": null,
+        "land_owner_member_id": "m1",
+        "annual_income": 90000, "electricity_units_per_year": 1200,
+        "owns_cultivable_land": true, "land_in_own_name": true, "land_acquired_after_2019_02_01_not_inherited": false,
+        "wet_land_acres": 0, "dry_land_acres": 1.5,
+        "owns_four_wheeler_personal_use": false, "income_tax_payer_last_year": false, "professional_tax_payer": false,
+        "govt_or_psu_or_bank_or_coop_employee_or_pensioner": false, "govt_pension_10000_or_more": false,
+        "elected_representative": false, "registered_practising_professional": false, "nri": false,
+        "gst_turnover_over_50_lakh": false, "receives_social_security_pension": false
+      },
+      "members": [
+        { "id": "m1", "name": "Murugan", "relation": "self", "spouse_of": "m2", "on_ration_card": true, "gender": "male", "age": 52, "marital_status": "married",
+          "current_education": "none",
+          "has_own_bank_account": true, "bank_aadhaar_seeded": true, "bank_account_active": true, "pmkisan_ekyc_done": false,
+          "docs": { "aadhaar": true, "patta_land_record": true },
+          "names_as_printed": { "aadhaar": "Murugan S", "patta_land_record": "S. Murugan", "bank_passbook": "MURUGAN S" } },
+        { "id": "m2", "name": "Selvi", "relation": "spouse", "spouse_of": "m1", "on_ration_card": true, "gender": "female", "age": 47, "marital_status": "married",
+          "current_education": "none",
+          "has_own_bank_account": true, "bank_aadhaar_seeded": false, "bank_account_active": true,
+          "docs": { "aadhaar": true },
+          "names_as_printed": { "aadhaar": "Selvi M", "ration_card": "M. Selvi", "bank_passbook": "SELVI M" } },
+        { "id": "m3", "name": "Kavya", "relation": "daughter", "spouse_of": null, "on_ration_card": true, "gender": "female", "age": 18, "marital_status": "unmarried",
+          "studied_class_6_to_12_in": "government", "current_education": "ug", "is_first_higher_ed_course": true, "education_mode": "regular",
+          "has_own_bank_account": false, "bank_aadhaar_seeded": null, "bank_account_active": null,
+          "docs": { "aadhaar": true, "school_records_6_to_12": true, "college_admission_proof": true },
+          "names_as_printed": { "aadhaar": "Kavya Murugan", "school_records_6_to_12": "M. Kavya" } }
+      ]
+    },
+    "expected": {
+      "derived": { "kmut_head": "m2 (Selvi — wife of the male head on the ration card)" },
+      "verdicts": { "pm_kisan": "ELIGIBLE", "kmut:m2": "ELIGIBLE", "pudhumai_penn:m3": "ELIGIBLE" },
+      "rupees_per_year": 30000,
+      "name_check": { "m1": "GREEN", "m2": "GREEN", "m3": "YELLOW (initial M = Murugan; initials vs full name)" },
+      "fix_plan": [
+        "Bank branch (1 visit, unblocks 2 schemes): Selvi — link Aadhaar to her account (KMUT); Kavya — open a zero-balance account + link Aadhaar (Pudhumai Penn)",
+        "e-Sevai / CSC (1 visit, unblocks 2 schemes): Murugan — PM-KISAN registration + biometric eKYC; Selvi — KMUT application (when the government opens applications)",
+        "Online: Kavya — apply on the Penkalvi portal; mention the name difference (Kavya Murugan vs M. Kavya)"
+      ],
+      "trips": { "without": 6, "with": 2,
+        "working": "Without: PM-KISAN 1 (e-Sevai) + 1 (eKYC) = 2; KMUT 1 (e-Sevai) + 1 (bank seeding) = 2; Pudhumai Penn 0 (online) + 1 (no bank account) + 1 (name risk) = 2 → 6. With: bank + e-Sevai = 2." },
+      "replan_demo": { "change": "family.annual_income = 300000", "result": "KMUT → NOT_ELIGIBLE (income not below ₹2.5L); total ₹18,000/year; Selvi's bank task disappears from the plan; trips 4 → 2" }
+    }
+  },
+
+  "meena": {
+    "label_en": "Meena — 'My ₹1,000 stopped' (a different family)",
+    "label_ta": "மீனா — 'என் ₹1,000 நின்றுவிட்டது'",
+    "story_en": "Meena received ₹1,000 every month. Later she opened a new bank account and stopped using the old one, which went inactive. Her Aadhaar is still linked to the old account.",
+    "story_ta": "மீனாவுக்கு மாதம் ₹1,000 வந்துகொண்டிருந்தது. பிறகு புதிய வங்கிக் கணக்கு தொடங்கினார்; பழைய கணக்கு செயலற்றதானது. ஆதார் இன்னும் பழைய கணக்குடன் இணைந்துள்ளது.",
+    "doctor_entry": "kmut_payment_stopped",
+    "scripted_answers": { "q_selected_sms": "yes", "q_seeded": "no" },
+    "expected": { "path": ["q_selected_sms", "q_seeded", "o_seeding"], "draft_letter": "bank_seeding_request (stretch S2)" }
+  },
+
+  "lakshmi_paati": {
+    "label_en": "Lakshmi Paati — pension rejected",
+    "label_ta": "லட்சுமி பாட்டி — ஓய்வூதியம் நிராகரிப்பு",
+    "story_en": "Lakshmi, 66, lives alone in a free government house. Her widow pension application was rejected because her husband's death certificate was not attached.",
+    "story_ta": "66 வயதான லட்சுமி அரசு வழங்கிய இலவச வீட்டில் தனியாக வசிக்கிறார். கணவரின் இறப்புச் சான்றிதழ் இணைக்கப்படாததால் விதவை ஓய்வூதிய விண்ணப்பம் நிராகரிக்கப்பட்டது.",
+    "facts": {
+      "family": { "has_ration_card": true, "ration_card_type": "PHH", "ration_card_head_member_id": "l1", "kmut_chosen_member_id": null,
+        "land_owner_member_id": null,
+        "annual_income": 0, "electricity_units_per_year": 400,
+        "owns_cultivable_land": false, "land_in_own_name": false, "wet_land_acres": 0, "dry_land_acres": 0,
+        "owns_four_wheeler_personal_use": false, "income_tax_payer_last_year": false, "professional_tax_payer": false,
+        "govt_or_psu_or_bank_or_coop_employee_or_pensioner": false, "govt_pension_10000_or_more": false,
+        "elected_representative": false, "registered_practising_professional": false, "nri": false,
+        "gst_turnover_over_50_lakh": false, "receives_social_security_pension": false },
+      "members": [
+        { "id": "l1", "name": "Lakshmi", "relation": "self", "spouse_of": null, "on_ration_card": true, "gender": "female", "age": 66, "marital_status": "widowed",
+          "current_education": "none", "is_destitute": true, "immovable_property_value": 0,
+          "has_own_bank_account": true, "bank_aadhaar_seeded": true, "bank_account_active": true,
+          "docs": { "aadhaar": true, "husband_death_certificate": false },
+          "names_as_printed": { "aadhaar": "Lakshmi", "ration_card": "Laxmi", "bank_passbook": "LAKSHMI" } }
+      ]
+    },
+    "doctor_entry": "pension_rejected",
+    "scripted_answers": { "q_reason_known": "yes", "q_docs_reason": "yes" },
+    "expected": {
+      "derived": { "kmut_head": "l1 (widow named as head)" },
+      "verdicts": { "pm_kisan": "NOT_ELIGIBLE", "kmut:l1": "ELIGIBLE (conflicts with pension)", "destitute_widow_pension:l1": "ELIGIBLE", "old_age_pension:l1": "ELIGIBLE" },
+      "rupees_per_year": 14400,
+      "note": "Both pensions share an exclusive group → counted once (₹14,400). KMUT (₹12,000) conflicts with the pension → only the higher is counted, and the conflict note asks her to choose.",
+      "name_check": { "l1": "YELLOW (Lakshmi vs Laxmi — spelling variant)" },
+      "path": ["q_reason_known", "q_docs_reason", "o_fix_doc_and_petition"],
+      "draft_letter": "appeal_pension → helper approves"
+    }
+  }
+}

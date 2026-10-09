@@ -1,0 +1,325 @@
+{
+  "_meta": {
+    "version": "stage2-final",
+    "description": "Thunai scheme rules. The rules engine reads this file. The LLM only extracts facts and talks; it never decides eligibility or any derived fact.",
+    "checked_on": "2026-10-09",
+    "verification_levels": {
+      "official": "Confirmed on an official government page or document",
+      "secondary": "Consistent across several non-government sources; official page unreachable",
+      "unverified": "Disabled; never shown to users"
+    },
+    "condition_format": "Each condition: field (dot path: family.* or member.*), op (== != < <= > >= in), value. A condition on an unknown field (null/missing) is UNKNOWN.",
+    "verdict_algorithm": [
+      "1. Skip disabled schemes (enabled = false).",
+      "2. Scope 'family': evaluate once. Scope 'member': evaluate for each member that passes beneficiary_member_filter (a filter that is UNKNOWN skips the member for now; the question bank asks it).",
+      "3. If any exclusion is TRUE → NOT_ELIGIBLE (show that exclusion's text).",
+      "4. Else if any eligibility condition is FALSE → NOT_ELIGIBLE (show that condition's text).",
+      "5. Else if any eligibility condition is UNKNOWN → NEED_INFO (ask the matching question).",
+      "6. Else if any need_info_flag is TRUE → NEED_INFO (show the flag text: confirm with the office).",
+      "7. Else → ELIGIBLE (show all eligibility texts as 'why')."
+    ],
+    "verdicts": ["ELIGIBLE", "NEED_INFO", "NOT_ELIGIBLE"],
+    "total_rules": [
+      "Add benefit.amount_per_year only for ELIGIBLE results.",
+      "exclusive_group: if several schemes in the same group are ELIGIBLE for the same person, count only the highest.",
+      "conflicts_with: if a scheme and a scheme it conflicts with are both ELIGIBLE in the same family, count only the higher amount and show conflict_note so the family can choose.",
+      "Health cover is never added to the ₹ total."
+    ],
+    "tamil_note": "Tamil strings self-reviewed on 9 Oct; a native speaker should still glance over them once before the demo."
+  },
+
+  "derived_facts": {
+    "member.is_kmut_head_of_family": {
+      "computed_by": "rules engine (deterministic) — never by the LLM",
+      "source": "KMUT official FAQ 21",
+      "algorithm": [
+        "head = member whose id == family.ration_card_head_member_id. If unknown → UNKNOWN for everyone (ask the 'ration card head' question).",
+        "If head.gender is female or transgender → head is the KMUT head of family (covers single women, widows and transgender heads).",
+        "Else (male head) → the member with gender female and spouse_of == head.id, if she is on the ration card.",
+        "Else → the member whose id == family.kmut_chosen_member_id (the family chooses one woman aged 21+). If unknown → UNKNOWN (ask 'which woman will apply').",
+        "Every other member → false."
+      ]
+    },
+    "family.has_both_wet_and_dry_land": {
+      "computed_by": "rules engine (deterministic)",
+      "algorithm": ["true if family.wet_land_acres > 0 and family.dry_land_acres > 0; false if both are known and either is 0; otherwise UNKNOWN."]
+    }
+  },
+
+  "fact_schema": {
+    "family": {
+      "district": "string",
+      "has_ration_card": "bool",
+      "ration_card_type": "PHH | PHH-AAY | NPHH | NPHH-S | NPHH-NC (PHH / PHH-AAY used as the BPL indicator)",
+      "ration_card_head_member_id": "member id of the person named as head on the ration card",
+      "kmut_chosen_member_id": "member id | null (only needed when the male head has no wife on the card)",
+      "land_owner_member_id": "member id of the landholder (PM-KISAN applicant)",
+      "annual_income": "number (INR)",
+      "electricity_units_per_year": "number",
+      "owns_cultivable_land": "bool",
+      "land_in_own_name": "bool (name entered in land records / patta)",
+      "land_acquired_after_2019_02_01_not_inherited": "bool",
+      "wet_land_acres": "number",
+      "dry_land_acres": "number",
+      "owns_four_wheeler_personal_use": "bool (car, jeep, tractor, heavy vehicle)",
+      "income_tax_payer_last_year": "bool",
+      "professional_tax_payer": "bool",
+      "govt_or_psu_or_bank_or_coop_employee_or_pensioner": "bool (any member, serving or retired)",
+      "govt_pension_10000_or_more": "bool (any member)",
+      "elected_representative": "bool (any member; village panchayat ward member does NOT count)",
+      "registered_practising_professional": "bool",
+      "nri": "bool",
+      "gst_turnover_over_50_lakh": "bool",
+      "receives_social_security_pension": "bool (OAP, widow, welfare-board or govt pension, any member)"
+    },
+    "member": {
+      "id": "string", "name": "string",
+      "relation": "self | spouse | daughter | son | mother | father | other (relative to the person talking)",
+      "spouse_of": "member id | null",
+      "on_ration_card": "bool",
+      "gender": "female | male | transgender",
+      "age": "number",
+      "marital_status": "married | unmarried | widowed | divorced | deserted",
+      "is_kmut_head_of_family": "DERIVED — see derived_facts",
+      "studied_class_6_to_12_in": "government | government_aided | rte_private_6_8_then_government_9_12 | private",
+      "current_education": "ug | diploma | iti | professional_ug | pg | none",
+      "is_first_higher_ed_course": "bool",
+      "education_mode": "regular | distance | open_university",
+      "is_destitute": "bool (no family support; final assessment by Revenue officials)",
+      "immovable_property_value": "number (INR; free government house not counted)",
+      "has_own_bank_account": "bool",
+      "bank_aadhaar_seeded": "bool | null (null → 'check in 1 minute' task)",
+      "bank_account_active": "bool | null",
+      "pmkisan_ekyc_done": "bool | null",
+      "docs": "object: document id → bool (has it?) — see documents.json doc_fact_map",
+      "names_as_printed": "object: document id → name exactly as printed (used only for the name check)"
+    }
+  },
+
+  "schemes": [
+    {
+      "id": "pm_kisan",
+      "name_en": "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+      "name_ta": "பிஎம்-கிசான் (பிரதமரின் விவசாயிகள் கௌரவ நிதி)",
+      "level": "central", "priority": "core", "enabled": true,
+      "scope": "family",
+      "applicant": "family.land_owner_member_id",
+      "benefit": { "amount_per_year": 6000, "display_en": "₹6,000 a year, paid directly to the bank account", "display_ta": "ஆண்டுக்கு ₹6,000 — நேரடியாக வங்கிக் கணக்கில்", "verification": "official" },
+      "eligibility": [
+        { "id": "owns_land", "field": "family.owns_cultivable_land", "op": "==", "value": true,
+          "text_en": "The family (husband, wife, minor children) owns cultivable land",
+          "text_ta": "குடும்பத்திற்கு (கணவன், மனைவி, சிறு குழந்தைகள்) சாகுபடி நிலம் சொந்தமாக உள்ளது" },
+        { "id": "land_in_records", "field": "family.land_in_own_name", "op": "==", "value": true,
+          "text_en": "The farmer's name is entered in the land records (patta)",
+          "text_ta": "நில ஆவணங்களில் (பட்டா) விவசாயியின் பெயர் உள்ளது" }
+      ],
+      "exclusions": [
+        { "id": "income_tax", "field": "family.income_tax_payer_last_year", "op": "==", "value": true,
+          "text_en": "Someone in the family paid income tax in the last assessment year", "text_ta": "குடும்பத்தில் யாரேனும் கடந்த ஆண்டு வருமான வரி செலுத்தியுள்ளனர்" },
+        { "id": "govt_employee", "field": "family.govt_or_psu_or_bank_or_coop_employee_or_pensioner", "op": "==", "value": true,
+          "text_en": "A family member is a serving or retired government / PSU employee (Group D / MTS excepted)", "text_ta": "குடும்ப உறுப்பினர் அரசு / பொதுத்துறை ஊழியர் அல்லது ஓய்வு பெற்றவர் (D பிரிவு தவிர)" },
+        { "id": "pension_10k", "field": "family.govt_pension_10000_or_more", "op": "==", "value": true,
+          "text_en": "A family member gets a pension of ₹10,000 or more a month", "text_ta": "குடும்ப உறுப்பினர் மாதம் ₹10,000 அல்லது அதற்கு மேல் ஓய்வூதியம் பெறுகிறார்" },
+        { "id": "elected_rep", "field": "family.elected_representative", "op": "==", "value": true,
+          "text_en": "A family member holds/held a constitutional post, or is/was a minister, MP, MLA, mayor or district panchayat chairperson", "text_ta": "குடும்ப உறுப்பினர் அமைச்சர் / எம்.பி / எம்.எல்.ஏ / மேயர் போன்ற பதவியில் உள்ளார் அல்லது இருந்தார்" },
+        { "id": "professional", "field": "family.registered_practising_professional", "op": "==", "value": true,
+          "text_en": "A family member is a practising registered doctor, engineer, lawyer, CA or architect", "text_ta": "குடும்ப உறுப்பினர் பதிவுபெற்ற மருத்துவர் / பொறியாளர் / வழக்கறிஞர் / தணிக்கையாளர் / கட்டடக் கலைஞர்" },
+        { "id": "nri", "field": "family.nri", "op": "==", "value": true,
+          "text_en": "The family is NRI (applies to new registrations)", "text_ta": "குடும்பம் வெளிநாடு வாழ் இந்தியர் (புதிய பதிவுகளுக்கு)" }
+      ],
+      "need_info_flags": [
+        { "id": "land_after_cutoff", "field": "family.land_acquired_after_2019_02_01_not_inherited", "op": "==", "value": true,
+          "text_en": "Land acquired after 01-02-2019 (other than by inheritance) is checked separately; payment may be held for physical verification",
+          "text_ta": "01-02-2019க்குப் பிறகு (வாரிசுரிமை தவிர) வாங்கிய நிலம் தனியாக சரிபார்க்கப்படும்; நேரடி சரிபார்ப்பு வரை பணம் நிறுத்தப்படலாம்" }
+      ],
+      "required_documents": ["aadhaar", "patta_land_record", "bank_account_aadhaar_seeded"],
+      "required_tasks": ["pmkisan_ekyc"],
+      "name_check_documents": ["aadhaar", "patta_land_record", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "how_to_apply_en": "Register on the PM-KISAN portal or at a CSC / e-Sevai centre. eKYC is mandatory: OTP on the portal, or biometric at a CSC.",
+      "how_to_apply_ta": "பிஎம்-கிசான் இணையதளம் அல்லது பொது சேவை / இ-சேவை மையத்தில் பதிவு செய்யவும். eKYC கட்டாயம்: இணையதளத்தில் OTP அல்லது சேவை மையத்தில் கைரேகை.",
+      "check_status": { "en": "PM-KISAN portal → Know Your Status; or the Kisan e-Mitra chatbot", "ta": "பிஎம்-கிசான் இணையதளம் → உங்கள் நிலையை அறிக; அல்லது கிசான் இ-மித்ரா", "url": "https://pmkisan.gov.in/" },
+      "official_sources": ["https://pmkisan.gov.in/Documents/RevisedPM-KISANOperationalGuidelines(English).pdf", "https://pmkisan.gov.in/"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "Benefit (section 2), family definition (3), exclusions (4.1 a–c), land-records rule (5.1), 01-02-2019 cut-off (5.2) read from the operational guidelines PDF. eKYC mandatory per the portal." }
+    },
+
+    {
+      "id": "kmut",
+      "name_en": "Kalaignar Magalir Urimai Thogai",
+      "name_ta": "கலைஞர் மகளிர் உரிமைத் தொகை",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "beneficiary_member_filter": [
+        { "field": "member.is_kmut_head_of_family", "op": "==", "value": true }
+      ],
+      "head_of_family_rule_text": {
+        "en": "Everyone on the ration card is one family. The woman named as head on the card is the head of family; if a man is named, his wife is; if her name is not on the card, the family chooses one woman aged 21+. Unmarried single women, widows and transgender persons who head a family also count.",
+        "ta": "குடும்ப அட்டையில் உள்ள அனைவரும் ஒரு குடும்பம். அட்டையில் தலைவராக உள்ள பெண் குடும்பத் தலைவி; ஆண் தலைவர் என்றால் அவரது மனைவி; மனைவி பெயர் இல்லையெனில் 21 வயது நிரம்பிய ஒரு பெண்ணைக் குடும்பம் தேர்வு செய்யலாம். திருமணமாகாத தனித்த பெண்கள், கைம்பெண்கள், திருநங்கைகள் தலைமையிலான குடும்பங்களும் தகுதியானவை."
+      },
+      "benefit": { "amount_per_year": 12000, "display_en": "₹1,000 a month (₹12,000 a year)", "display_ta": "மாதம் ₹1,000 (ஆண்டுக்கு ₹12,000)", "verification": "official" },
+      "eligibility": [
+        { "id": "age_21", "field": "member.age", "op": ">=", "value": 21, "text_en": "Woman aged 21 or above", "text_ta": "21 வயது நிரம்பிய பெண்" },
+        { "id": "ration_card", "field": "family.has_ration_card", "op": "==", "value": true, "text_en": "Family has a ration card (needed to apply)", "text_ta": "குடும்ப அட்டை உள்ளது (விண்ணப்பிக்க அவசியம்)" },
+        { "id": "income", "field": "family.annual_income", "op": "<", "value": 250000, "text_en": "Family income below ₹2.5 lakh a year", "text_ta": "குடும்ப ஆண்டு வருமானம் ₹2.5 லட்சத்திற்குக் கீழ்" },
+        { "id": "wet_land", "field": "family.wet_land_acres", "op": "<", "value": 5, "text_en": "Less than 5 acres of wet land", "text_ta": "5 ஏக்கருக்குக் குறைவான நன்செய் நிலம்" },
+        { "id": "dry_land", "field": "family.dry_land_acres", "op": "<", "value": 10, "text_en": "Less than 10 acres of dry land", "text_ta": "10 ஏக்கருக்குக் குறைவான புன்செய் நிலம்" },
+        { "id": "electricity", "field": "family.electricity_units_per_year", "op": "<", "value": 3600, "text_en": "Household electricity use below 3,600 units a year", "text_ta": "ஆண்டுக்கு 3,600 யூனிட்டுக்குக் குறைவான வீட்டு மின் பயன்பாடு" }
+      ],
+      "land_rule_note": "Official FAQ 23 lists 'less than 5 acres wet OR less than 10 acres dry'. For mixed holdings the exact combination is not stated; we apply both limits (stricter) and show NEED_INFO text in the card for families with both wet and dry land.",
+      "need_info_flags": [
+        { "id": "mixed_land", "field": "family.has_both_wet_and_dry_land", "op": "==", "value": true,
+          "text_en": "You have both wet and dry land — the combined limit is decided by officials; confirm at e-Sevai",
+          "text_ta": "நன்செய், புன்செய் இரண்டும் உள்ளன — மொத்த வரம்பை அலுவலர்கள் முடிவு செய்வர்; இ-சேவையில் உறுதிசெய்யவும்" }
+      ],
+      "exclusions": [
+        { "id": "income_tax", "field": "family.income_tax_payer_last_year", "op": "==", "value": true, "text_en": "Family files / pays income tax", "text_ta": "குடும்பத்தில் வருமான வரி செலுத்துபவர் உள்ளார்" },
+        { "id": "prof_tax", "field": "family.professional_tax_payer", "op": "==", "value": true, "text_en": "Family pays professional tax with income above ₹2.5 lakh", "text_ta": "₹2.5 லட்சத்திற்கு மேல் வருமானத்துடன் தொழில் வரி செலுத்துபவர்" },
+        { "id": "govt_employee", "field": "family.govt_or_psu_or_bank_or_coop_employee_or_pensioner", "op": "==", "value": true, "text_en": "A member is a state/central govt, PSU, bank, board, local body or cooperative employee or pensioner", "text_ta": "குடும்ப உறுப்பினர் அரசு / பொதுத்துறை / வங்கி / வாரியம் / உள்ளாட்சி / கூட்டுறவு ஊழியர் அல்லது ஓய்வூதியதாரர்" },
+        { "id": "elected_rep", "field": "family.elected_representative", "op": "==", "value": true, "text_en": "A member is an elected representative (village panchayat ward members excepted)", "text_ta": "குடும்ப உறுப்பினர் தேர்ந்தெடுக்கப்பட்ட மக்கள் பிரதிநிதி (ஊராட்சி வார்டு உறுப்பினர் தவிர)" },
+        { "id": "four_wheeler", "field": "family.owns_four_wheeler_personal_use", "op": "==", "value": true, "text_en": "Family owns a car, jeep, tractor or heavy vehicle for personal use", "text_ta": "சொந்தப் பயன்பாட்டுக்கு கார் / ஜீப் / டிராக்டர் / கனரக வாகனம் உள்ளது" },
+        { "id": "gst", "field": "family.gst_turnover_over_50_lakh", "op": "==", "value": true, "text_en": "Business owner paying GST with turnover above ₹50 lakh", "text_ta": "₹50 லட்சத்திற்கு மேல் விற்பனையுடன் GST செலுத்தும் தொழில் உரிமையாளர்" },
+        { "id": "ss_pension", "field": "family.receives_social_security_pension", "op": "==", "value": true, "text_en": "Family already receives old-age, widow, welfare-board or government pension", "text_ta": "குடும்பம் ஏற்கனவே முதியோர் / விதவை / நலவாரிய / அரசு ஓய்வூதியம் பெறுகிறது" }
+      ],
+      "conflicts_with": ["destitute_widow_pension", "old_age_pension"],
+      "conflict_note": {
+        "en": "Families receiving a social security pension cannot also receive Magalir Urimai. If both are possible, the family must choose one.",
+        "ta": "சமூகப் பாதுகாப்பு ஓய்வூதியம் பெறும் குடும்பம் மகளிர் உரிமைத் தொகையும் பெற இயலாது. இரண்டுக்கும் தகுதி இருந்தால் ஒன்றைத் தேர்வு செய்ய வேண்டும்."
+      },
+      "required_documents": ["aadhaar", "ration_card", "bank_account_aadhaar_seeded"],
+      "not_required_note": { "en": "No separate income certificate or land document is needed to apply (official FAQ 24).", "ta": "விண்ணப்பிக்க தனியாக வருமானச் சான்று அல்லது நில ஆவணம் தேவையில்லை (அதிகாரப்பூர்வ FAQ 24)." },
+      "name_check_documents": ["aadhaar", "ration_card", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "application_window": { "en": "New applications are accepted through e-Sevai centres only from dates announced by the government.", "ta": "அரசு அறிவிக்கும் தேதியிலிருந்து மட்டுமே இ-சேவை மையங்கள் வழியாக புதிய விண்ணப்பம்." },
+      "how_to_apply_en": "Apply through an e-Sevai centre when the government opens applications. Carry Aadhaar, ration card and an Aadhaar-linked bank account.",
+      "how_to_apply_ta": "அரசு விண்ணப்பம் திறக்கும்போது இ-சேவை மையம் வழியாக விண்ணப்பிக்கவும். ஆதார், குடும்ப அட்டை, ஆதார் இணைக்கப்பட்ட வங்கிக் கணக்கு கொண்டு செல்லவும்.",
+      "appeal": { "deadline_days": 30,
+        "to_en": "Revenue Divisional Officer (RDO), through an e-Sevai centre only, with proof of eligibility", "to_ta": "வருவாய் கோட்ட அலுவலர் (RDO) — இ-சேவை மையம் வழியாக மட்டும், தகுதிக்கான ஆதாரத்துடன்",
+        "starts_from_en": "the date of the rejection SMS", "starts_from_ta": "நிராகரிப்பு குறுஞ்செய்தி வந்த நாள்", "verification": "official" },
+      "check_status": { "en": "KMUT website → login with Aadhaar to see status and rejection reason; call centre 1913", "ta": "KMUT இணையதளம் → ஆதார் மூலம் உள்நுழைந்து நிலை / நிராகரிப்பு காரணம் அறியலாம்; அழைப்பு மையம் 1913", "url": "https://kmut.tn.gov.in/" },
+      "official_sources": ["https://kmut.tn.gov.in/faq.html", "https://kmut.tn.gov.in/"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "Head of family (FAQ 21), economic criteria (FAQ 23), documents (FAQ 24, 27), exclusions (FAQ 25, 29), appeal (FAQ 4, 5, 18, 19), payment issues (FAQ 2, 6, 10, 12), application windows (FAQ 8), ₹12,000/year (FAQ 20) — official KMUT FAQ (Tamil)." }
+    },
+
+    {
+      "id": "pudhumai_penn",
+      "name_en": "Pudhumai Penn (Moovalur Ramamirtham Ammaiyar Higher Education Assurance Scheme)",
+      "name_ta": "புதுமைப் பெண் (மூவலூர் இராமாமிர்தம் அம்மையார் உயர்கல்வி உறுதித் திட்டம்)",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "beneficiary_member_filter": [
+        { "field": "member.gender", "op": "==", "value": "female" },
+        { "field": "member.current_education", "op": "in", "value": ["ug", "diploma", "iti", "professional_ug", "pg"] }
+      ],
+      "benefit": { "amount_per_year": 12000, "display_en": "₹1,000 a month by DBT until the course is completed", "display_ta": "படிப்பு முடியும் வரை மாதம் ₹1,000 (நேரடி வங்கிப் பரிமாற்றம்)", "verification": "official" },
+      "eligibility": [
+        { "id": "school", "field": "member.studied_class_6_to_12_in", "op": "in", "value": ["government", "government_aided", "rte_private_6_8_then_government_9_12"],
+          "text_en": "Studied Classes 6–12 in a Tamil Nadu government school", "text_ta": "6 முதல் 12ஆம் வகுப்பு வரை தமிழ்நாடு அரசுப் பள்ளியில் படித்தவர்" },
+        { "id": "higher_ed", "field": "member.current_education", "op": "in", "value": ["ug", "diploma", "iti", "professional_ug"],
+          "text_en": "Now studying an undergraduate degree, diploma or ITI course at a recognised institution", "text_ta": "அங்கீகரிக்கப்பட்ட நிறுவனத்தில் இளநிலை பட்டம் / டிப்ளமோ / ஐடிஐ படிக்கிறார்" },
+        { "id": "first_course", "field": "member.is_first_higher_ed_course", "op": "==", "value": true,
+          "text_en": "This is her first higher-education course", "text_ta": "இது அவரது முதல் உயர்கல்விப் படிப்பு" }
+      ],
+      "need_info_flags": [
+        { "id": "aided_or_rte", "field": "member.studied_class_6_to_12_in", "op": "in", "value": ["government_aided", "rte_private_6_8_then_government_9_12"],
+          "text_en": "Aided-school / RTE route was reported as added in 2024 but is not on the department page — confirm on the Penkalvi portal",
+          "text_ta": "அரசு உதவிபெறும் பள்ளி / RTE வழி 2024இல் சேர்க்கப்பட்டதாகச் செய்திகள் — பெண்கல்வி இணையதளத்தில் உறுதிசெய்யவும்" },
+        { "id": "distance_mode", "field": "member.education_mode", "op": "in", "value": ["distance", "open_university"],
+          "text_en": "Distance / open-university courses are reported as not eligible — confirm",
+          "text_ta": "தொலைதூர / திறந்தநிலை படிப்புகள் தகுதியற்றவை எனக் கூறப்படுகிறது — உறுதிசெய்யவும்" }
+      ],
+      "exclusions": [],
+      "notes_en": ["No family income limit.", "Can be received along with other scholarships.", "Any number of girls in the same family can receive it."],
+      "notes_ta": ["குடும்ப வருமான வரம்பு இல்லை.", "பிற உதவித்தொகைகளுடன் சேர்த்துப் பெறலாம்.", "ஒரே குடும்பத்தில் எத்தனை மாணவிகளும் பெறலாம்."],
+      "required_documents": ["aadhaar", "school_records_6_to_12", "college_admission_proof", "student_bank_account_aadhaar_seeded"],
+      "name_check_documents": ["aadhaar", "school_records_6_to_12", "bank_passbook"],
+      "where_to_apply": "online",
+      "how_to_apply_en": "The student applies herself on the Penkalvi portal. The college certifies her status every six months. If she has no bank account, colleges help open a zero-balance account (Indian Bank, Canara Bank, IOB, SBI).",
+      "how_to_apply_ta": "மாணவி 'பெண்கல்வி' இணையதளத்தில் தானே விண்ணப்பிக்கலாம். கல்லூரி ஆறு மாதத்திற்கு ஒருமுறை படிப்புச் சான்று அளிக்கும். வங்கிக் கணக்கு இல்லையெனில் கல்லூரி வழியாக பூஜ்ய இருப்புக் கணக்கு (இந்தியன் வங்கி, கனரா வங்கி, IOB, SBI) தொடங்கலாம்.",
+      "check_status": { "en": "Penkalvi portal or the college scholarship desk", "ta": "பெண்கல்வி இணையதளம் அல்லது கல்லூரி உதவித்தொகை பிரிவு", "url": null },
+      "official_sources": ["https://www.tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/pudhumai-penn"],
+      "secondary_sources": ["https://www.thenewsminute.com/amp/story/tamil-nadu/stalin-to-inaugurate-extension-of-pudhumai-penn-scheme-for-school-girls", "https://www.citizennest.com/hi/guide/tn-pudhumai-penn-scholarship-government-school-girls"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "TN Social Welfare Department page: govt school Classes 6–12; ₹1,000/month DBT till completion of first UG / diploma / ITI; with other scholarships; any number of girls per family; Penkalvi portal (students apply directly); college certifies bonafide every 6 months; zero-balance accounts via 4 banks. Aided/RTE route and distance-mode exclusion are from news/secondary sources → NEED_INFO flags." }
+    },
+
+    {
+      "id": "destitute_widow_pension",
+      "name_en": "Destitute Widow Pension (Tamil Nadu Social Security)",
+      "name_ta": "ஆதரவற்ற விதவையர் ஓய்வூதியத் திட்டம்",
+      "level": "state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "exclusive_group": "social_security_pension",
+      "beneficiary_member_filter": [
+        { "field": "member.marital_status", "op": "==", "value": "widowed" }
+      ],
+      "benefit": { "amount_per_year": 14400, "display_en": "₹1,200 a month", "display_ta": "மாதம் ₹1,200", "verification": "official" },
+      "eligibility": [
+        { "id": "age_18", "field": "member.age", "op": ">=", "value": 18, "text_en": "Widow aged 18 or above", "text_ta": "18 வயது நிரம்பிய விதவை" },
+        { "id": "destitute", "field": "member.is_destitute", "op": "==", "value": true, "text_en": "Destitute (no family support) — final assessment by Revenue officials", "text_ta": "ஆதரவற்றவர் — இறுதி மதிப்பீடு வருவாய்த் துறை அலுவலர்களால்" },
+        { "id": "property", "field": "member.immovable_property_value", "op": "<=", "value": 100000, "text_en": "Immovable property worth ₹1,00,000 or less (a free government house is not counted)", "text_ta": "அசையா சொத்து ₹1,00,000க்கு மிகாமல் (அரசு வழங்கிய இலவச வீடு கணக்கில் இல்லை)" }
+      ],
+      "need_info_flags": [],
+      "exclusions": [],
+      "required_documents": ["aadhaar", "husband_death_certificate", "bank_account_aadhaar_seeded"],
+      "required_documents_note": "Aadhaar and bank account are needed for DBT payment (CRA: pensions credited through banks since Sept 2024). The death certificate is standard proof of widowhood — confirm the full list at e-Sevai.",
+      "name_check_documents": ["aadhaar", "husband_death_certificate", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "how_to_apply_en": "Apply online at tnesevai.tn.gov.in or through an e-Sevai centre. Revenue officials verify and decide within 30 days; the Special Tahsildar (Social Security Scheme) sanctions the pension.",
+      "how_to_apply_ta": "tnesevai.tn.gov.in இணையதளம் அல்லது இ-சேவை மையம் வழியாக விண்ணப்பிக்கவும். வருவாய்த் துறை சரிபார்த்து 30 நாட்களுக்குள் முடிவு; தனி வட்டாட்சியர் (சமூகப் பாதுகாப்புத் திட்டம்) ஓய்வூதியம் வழங்க ஆணையிடுவார்.",
+      "grievance": {
+        "en": "Petition the Special Tahsildar (Social Security Scheme) at the Taluk office with the rejection reason and proof, or at the District Collectorate's people's grievance day.",
+        "ta": "நிராகரிப்பு காரணம் மற்றும் ஆதாரத்துடன் வட்ட அலுவலக தனி வட்டாட்சியரிடம் (சமூகப் பாதுகாப்புத் திட்டம்) அல்லது மாவட்ட ஆட்சியர் அலுவலக மக்கள் குறைதீர்க்கும் நாளில் மனு அளிக்கவும்.",
+        "verification": "official mechanisms (CRA site lists the Special Tahsildar for pensions and the people's grievance day); the exact office for a given district — confirm locally"
+      },
+      "official_sources": ["https://www.cra.tn.gov.in/about_schemes_t.php", "https://www.cra.tn.gov.in/eleg_schemes_t.php"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "Eligibility (destitute widow, 18+, property ≤ ₹1 lakh, free house excluded), ₹1,200/month from Aug 2023, tnesevai application, 30-day decision, Special Tahsildar (SSS), DBT since Sept 2024 — Commissionerate of Revenue Administration (Tamil)." }
+    },
+
+    {
+      "id": "old_age_pension",
+      "name_en": "Indira Gandhi National Old Age Pension (Tamil Nadu)",
+      "name_ta": "இந்திரா காந்தி தேசிய முதியோர் ஓய்வூதியத் திட்டம்",
+      "level": "central_state", "priority": "core", "enabled": true,
+      "scope": "member",
+      "exclusive_group": "social_security_pension",
+      "beneficiary_member_filter": [
+        { "field": "member.age", "op": ">=", "value": 60 }
+      ],
+      "benefit": { "amount_per_year": 14400, "display_en": "₹1,200 a month (central + state share)", "display_ta": "மாதம் ₹1,200 (ஒன்றிய + மாநில பங்கு)", "verification": "official" },
+      "eligibility": [
+        { "id": "age_60", "field": "member.age", "op": ">=", "value": 60, "text_en": "Aged 60 or above", "text_ta": "60 வயது அல்லது அதற்கு மேல்" },
+        { "id": "destitute", "field": "member.is_destitute", "op": "==", "value": true, "text_en": "Destitute (no family support) — final assessment by Revenue officials", "text_ta": "ஆதரவற்றவர் — இறுதி மதிப்பீடு வருவாய்த் துறை அலுவலர்களால்" },
+        { "id": "bpl", "field": "family.ration_card_type", "op": "in", "value": ["PHH", "PHH-AAY"], "text_en": "Below the poverty line (we use a priority-household ration card as the indicator)", "text_ta": "வறுமைக் கோட்டிற்குக் கீழ் (முன்னுரிமை குடும்ப அட்டையை அடையாளமாகக் கொள்கிறோம்)" }
+      ],
+      "need_info_flags": [],
+      "exclusions": [],
+      "required_documents": ["aadhaar", "ration_card", "bank_account_aadhaar_seeded"],
+      "name_check_documents": ["aadhaar", "ration_card", "bank_passbook"],
+      "where_to_apply": "esevai_csc",
+      "how_to_apply_en": "Apply online at tnesevai.tn.gov.in or through an e-Sevai centre; decided within 30 days.",
+      "how_to_apply_ta": "tnesevai.tn.gov.in அல்லது இ-சேவை மையம் வழியாக விண்ணப்பிக்கவும்; 30 நாட்களுக்குள் முடிவு.",
+      "official_sources": ["https://www.cra.tn.gov.in/about_schemes_t.php"],
+      "verification": { "status": "official", "checked_on": "2026-10-09",
+        "notes": "Destitute, BPL, 60+; ₹1,200 total (central 200 + state 1000 for ages 60–79; 500 + 700 for 80+). Ration-card type as BPL indicator is our labelled approximation." }
+    },
+
+    {
+      "id": "tamil_pudhalvan", "name_en": "Tamil Pudhalvan", "name_ta": "தமிழ்ப் புதல்வன்",
+      "level": "state", "priority": "stretch", "enabled": false, "scope": "member",
+      "benefit": { "amount_per_year": 12000, "display_en": "₹1,000 a month (reported)", "display_ta": "மாதம் ₹1,000 (செய்திகளின்படி)", "verification": "unverified" },
+      "eligibility": [], "exclusions": [],
+      "verification": { "status": "unverified", "checked_on": "2026-10-09", "notes": "Boys' counterpart of Pudhumai Penn (reported). Disabled until verified." }
+    },
+
+    {
+      "id": "cmchis", "name_en": "Chief Minister's Comprehensive Health Insurance Scheme (CMCHIS)", "name_ta": "முதலமைச்சரின் விரிவான மருத்துவக் காப்பீட்டுத் திட்டம்",
+      "level": "state", "priority": "stretch", "enabled": false, "scope": "family",
+      "benefit": { "amount_per_year": 0, "cover_display_en": "Health cover (amount to verify)", "verification": "unverified" },
+      "eligibility": [], "exclusions": [],
+      "verification": { "status": "unverified", "checked_on": "2026-10-09", "notes": "Disabled. Health cover is never added to the ₹ total." }
+    }
+  ]
+}

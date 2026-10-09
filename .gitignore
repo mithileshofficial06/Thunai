@@ -1,0 +1,10 @@
+# night-before scripts and outputs: never part of the app
+prep/
+# caches and local files
+__pycache__/
+*.pyc
+.pytest_cache/
+llm_cache.json
+tts_cache/
+.env
+*.log
