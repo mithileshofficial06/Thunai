@@ -310,5 +310,6 @@ Desktop / projector: 3 columns. Phone: bottom tab bar (same page).
 - [ ] Optional tonight (for S5): `pip install playwright` + `playwright install chromium`
 - [ ] Charger · **Ethernet cable** · phone hotspot
 
-## 15. Known, accepted risk
-- **No RPA in the core build** (UiPath-hosted jury): pitch line "the agent decides; next, a robot fills the e-Sevai form"; S5 demo if time allows.
+## 15. UiPath (RPA) and remaining risk
+- **UiPath e-Sevai form-filler robot** (spec: `docs/08_UIPATH_ROBOT.md`): built by a teammate in UiPath Studio in parallel. Thunai writes `handoff/application.json` after helper approval and serves `mock_esevai.html`; the robot fills the form on screen and stops before Submit; Thunai shows a 🤖 event from `handoff/robot_result.json`. Story: **"agent decides → UiPath robot acts → human approves."**
+- **Risk:** it depends on a teammate having UiPath Studio installed and knowing the basics. Fallback: Playwright robot (S5) with the same JSON and form, or the backup video plus the roadmap line.
