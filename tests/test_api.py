@@ -62,7 +62,7 @@ def test_card_edit_rejects_bad_path():
 def test_task_done_replans():
     sid = load("murugan_family")["session_id"]
     r = client.post("/api/task", json={"session_id": sid, "task_id": "m2:bank_account_aadhaar_seeded", "done": True}).json()
-    assert any(e["text_en"].startswith("Task removed") and "Selvi" in e["text_en"] for e in r["events"])
+    assert any(e["text_en"].startswith("Task no longer needed") and "Selvi" in e["text_en"] for e in r["events"])
 
 
 def test_privacy_guard_offline_chat():

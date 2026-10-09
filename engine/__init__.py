@@ -47,12 +47,17 @@ def recompute(facts, packs_ready=False):
     }
 
 
-STATUS_TEXT = {"ELIGIBLE": ("✅ eligible", "✅ தகுதி"), "NEED_INFO": ("❓ need info", "❓ தகவல் தேவை"),
-               "NOT_ELIGIBLE": ("❌ not eligible", "❌ தகுதி இல்லை"), None: ("—", "—")}
+STATUS_TEXT = {"ELIGIBLE": ("Eligible", "தகுதி உண்டு"), "NEED_INFO": ("Needs information", "தகவல் தேவை"),
+               "NOT_ELIGIBLE": ("Not eligible", "தகுதி இல்லை"), None: ("Not assessed", "மதிப்பிடப்படவில்லை")}
+
+
+def short(name):
+    """Scheme name without the long bracketed part, for compact messages."""
+    return name.split(" (")[0]
 
 
 def _event(en, ta, **detail):
-    return {"type": "replan", "icon": "🔁", "text_en": en, "text_ta": ta, "detail": detail}
+    return {"type": "replan", "icon": "", "text_en": en, "text_ta": ta, "detail": detail}
 
 
 def diff(old, new):
@@ -69,15 +74,15 @@ def diff(old, new):
         v = b or a
         who = f" ({v['member_name']})" if v.get("member_name") else ""
         failed = [r for r in (b or {}).get("reasons", []) if r["ok"] is False]
-        why_en = f" — \"{failed[0]['en']}\" not met" if sb == "NOT_ELIGIBLE" and failed else ""
-        why_ta = f" — \"{failed[0]['ta']}\" பொருந்தவில்லை" if sb == "NOT_ELIGIBLE" and failed else ""
+        why_en = f" (not met: {failed[0]['en']})" if sb == "NOT_ELIGIBLE" and failed else ""
+        why_ta = f" (பொருந்தவில்லை: {failed[0]['ta']})" if sb == "NOT_ELIGIBLE" and failed else ""
         events.append(_event(
-            f"{v['name_en']}{who}: {STATUS_TEXT[sa][0]} → {STATUS_TEXT[sb][0]}{why_en}",
-            f"{v['name_ta']}{who}: {STATUS_TEXT[sa][1]} → {STATUS_TEXT[sb][1]}{why_ta}",
+            f"{short(v['name_en'])}{who}: {STATUS_TEXT[sa][0]} → {STATUS_TEXT[sb][0]}{why_en}",
+            f"{short(v['name_ta'])}{who}: {STATUS_TEXT[sa][1]} → {STATUS_TEXT[sb][1]}{why_ta}",
             scheme_id=v["scheme_id"], old=sa, new=sb))
     if old["rupees_per_year"] != new["rupees_per_year"]:
-        events.append(_event(f"₹{old['rupees_per_year']:,} → ₹{new['rupees_per_year']:,} per year",
-                             f"₹{old['rupees_per_year']:,} → ₹{new['rupees_per_year']:,} / ஆண்டு",
+        events.append(_event(f"Estimated benefit: ₹{old['rupees_per_year']:,} → ₹{new['rupees_per_year']:,} per year",
+                             f"மதிப்பிடப்பட்ட நன்மை: ₹{old['rupees_per_year']:,} → ₹{new['rupees_per_year']:,} / ஆண்டு",
                              old=old["rupees_per_year"], new=new["rupees_per_year"]))
 
     def task_map(snap):
@@ -92,14 +97,14 @@ def diff(old, new):
         nt_new = nt.keys() - ot.keys()
     for tid in nt_new:
         t = nt[tid]
-        events.append(_event(f"New task: {t['member_name']} — {t['en']}", f"புதிய பணி: {t['member_name']} — {t['ta']}", task_id=tid))
+        events.append(_event(f"New task: {t['member_name']}, {t['short_en']}", f"புதிய பணி: {t['member_name']}, {t['short_ta']}", task_id=tid))
     for tid in ot.keys() - nt.keys():
         t = ot[tid]
-        events.append(_event(f"Task removed: {t['member_name']} — {t['en']}", f"பணி நீக்கப்பட்டது: {t['member_name']} — {t['ta']}", task_id=tid))
+        events.append(_event(f"Task no longer needed: {t['member_name']}, {t['short_en']}", f"பணி தேவையில்லை: {t['member_name']}, {t['short_ta']}", task_id=tid))
     for tid in nt.keys() & ot.keys():
         if nt[tid]["done"] and not ot[tid]["done"]:
             t = nt[tid]
-            events.append(_event(f"Done ✓ {t['member_name']} — {t['en']}", f"முடிந்தது ✓ {t['member_name']} — {t['ta']}", task_id=tid))
+            events.append(_event(f"Completed: {t['member_name']}, {t['short_en']}", f"முடிந்தது: {t['member_name']}, {t['short_ta']}", task_id=tid))
     if old["trips"] != new["trips"] and (new["trips"]["without"] or old["trips"]["without"]):
         events.append(_event(f"Office trips: {new['trips']['without']} → {new['trips']['with']}",
                              f"அலுவலகப் பயணங்கள்: {new['trips']['without']} → {new['trips']['with']}",

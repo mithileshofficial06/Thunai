@@ -79,14 +79,14 @@ def test_income_correction_replans(murugan):
     assert after["trips"] == {"without": 4, "with": 2}
     texts = " | ".join(e["text_en"] for e in diff(murugan, after))
     assert "₹30,000 → ₹18,000" in texts
-    assert "eligible → ❌ not eligible" in texts
+    assert "Eligible → Not eligible" in texts
     assert "Family income below ₹2.5 lakh" in texts
 
 
 def test_task_done_replans(murugan):
     f, _, _ = patch(murugan["facts"], "member:m2.bank_aadhaar_seeded", True)
     after = recompute(f)
-    removed = [e for e in diff(murugan, after) if e["text_en"].startswith("Task removed")]
+    removed = [e for e in diff(murugan, after) if e["text_en"].startswith("Task no longer needed")]
     assert removed and "Selvi" in removed[0]["text_en"]
 
 

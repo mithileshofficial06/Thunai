@@ -3,105 +3,130 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Thunai — துணை</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F766E'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Nirmala UI,sans-serif'%3Eது%3C/text%3E%3C/svg%3E">
+  <title>Thunai | Welfare Scheme Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231B3A6B'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Nirmala UI,sans-serif'%3Eது%3C/text%3E%3C/svg%3E">
   <script src="tailwindcss-play-3.4.17.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- ===== Top bar ===== -->
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-ta">துணை</span><span class="brand-en">Thunai</span>
-      <span class="brand-sub" data-i18n="tagline"></span>
-    </div>
-    <div class="top-actions">
-      <button class="pill" data-persona="murugan_family" data-i18n="loadMurugan"></button>
-      <button class="pill" data-persona="meena" data-i18n="loadMeena"></button>
-      <button class="pill" data-persona="lakshmi_paati" data-i18n="loadLakshmi"></button>
-      <button id="speakerBtn" class="pill hidden" title="Speak replies">🔇</button>
-      <div class="lang-toggle" role="group" aria-label="Language">
-        <button data-lang="ta">தமிழ்</button><button data-lang="en">EN</button>
+  <div class="tricolour" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <!-- ===== Header ===== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">து</div>
+        <div>
+          <div class="brand-name">Thunai <span class="brand-ta">துணை</span></div>
+          <div class="brand-sub" data-i18n="tagline"></div>
+        </div>
       </div>
-      <button id="clearBtn" class="pill" data-i18n="clear"></button>
+      <div class="header-tools">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button data-lang="ta">தமிழ்</button><span aria-hidden="true">|</span><button data-lang="en">English</button>
+        </div>
+        <button id="clearBtn" class="link-btn" data-i18n="clear"></button>
+        <button id="speakerBtn" class="link-btn hidden"></button>
+      </div>
     </div>
   </header>
 
-  <!-- ===== Main: 3 columns on desktop, tabs on phones ===== -->
-  <main class="layout">
-    <!-- Column 1: chat -->
-    <section id="col-chat" class="col col-chat" data-tab="chat">
-      <div id="consent" class="consent hidden">
+  <nav class="navbar">
+    <div class="container nav-inner">
+      <span class="nav-title" data-i18n="navTitle"></span>
+      <div class="demo-group">
+        <span class="demo-label" data-i18n="demoLabel"></span>
+        <button class="nav-btn" data-persona="murugan_family" data-i18n="loadMurugan"></button>
+        <button class="nav-btn" data-persona="meena" data-i18n="loadMeena"></button>
+        <button class="nav-btn" data-persona="lakshmi_paati" data-i18n="loadLakshmi"></button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== Main ===== -->
+  <main class="container layout">
+    <!-- Column 1: assistant -->
+    <section id="col-chat" class="col col-chat panel-box" data-tab="chat" aria-labelledby="chatHead">
+      <div class="panel-head"><h2 id="chatHead" data-i18n="chatTitle"></h2><p data-i18n="chatHint"></p></div>
+      <div id="consent" class="notice hidden">
         <p data-i18n="consent"></p>
-        <button id="consentOk" class="btn-primary" data-i18n="consentOk"></button>
+        <button id="consentOk" class="btn btn-primary" data-i18n="consentOk"></button>
       </div>
       <div id="chatLog" class="chat-log" aria-live="polite"></div>
       <div id="askBox" class="ask-box hidden"></div>
       <form id="chatForm" class="chat-form">
-        <button type="button" id="micBtn" class="mic hidden" title="Hold to talk">🎤</button>
+        <button type="button" id="micBtn" class="btn btn-outline mic hidden" data-i18n="mic"></button>
+        <label class="sr-only" for="chatInput" data-i18n="chatPlaceholder"></label>
         <input id="chatInput" autocomplete="off" data-i18n-placeholder="chatPlaceholder">
-        <button class="btn-primary" type="submit" data-i18n="send"></button>
+        <button class="btn btn-primary" type="submit" data-i18n="send"></button>
       </form>
     </section>
 
     <!-- Column 2: family + results -->
     <section id="col-main" class="col col-main" data-tab="family">
-      <div class="metrics">
-        <div class="metric money">
-          <div class="metric-label" data-i18n="rupeesLabel"></div>
-          <div class="metric-value"><span id="rupees">₹0</span><small data-i18n="perYear"></small></div>
-          <div class="metric-sub" id="schemeCount"></div>
+      <div class="summary">
+        <div class="summary-box">
+          <div class="summary-label" data-i18n="rupeesLabel"></div>
+          <div class="summary-value" id="rupees">₹0</div>
+          <div class="summary-note"><span id="schemeCount"></span> <span data-i18n="perYearNote"></span></div>
         </div>
-        <div class="metric trips" title="">
-          <div class="metric-label" data-i18n="tripsLabel"></div>
-          <div class="metric-value">🚌 <s id="tripsWithout">0</s> → <span id="tripsWith">0</span></div>
-          <div class="metric-sub" data-i18n="tripsHow"></div>
+        <div class="summary-box trips" id="tripsBox">
+          <div class="summary-label" data-i18n="tripsLabel"></div>
+          <div class="summary-value"><span id="tripsWith">0</span></div>
+          <div class="summary-note"><span data-i18n="insteadOf"></span> <span id="tripsWithout">0</span></div>
         </div>
       </div>
 
-      <div class="card">
-        <h2 data-i18n="familyCard"></h2>
-        <div id="members" class="members"></div>
-        <div id="keyFacts" class="key-facts"></div>
+      <div class="panel-box">
+        <div class="panel-head"><h2 data-i18n="familyCard"></h2><p data-i18n="familyHint"></p></div>
+        <table class="data-table" id="membersTable">
+          <thead><tr><th data-i18n="colName"></th><th data-i18n="colRelation"></th><th data-i18n="colAge"></th></tr></thead>
+          <tbody id="members"></tbody>
+        </table>
+        <table class="data-table facts-table"><tbody id="keyFacts"></tbody></table>
       </div>
 
-      <div id="col-schemes" data-tab="schemes">
-        <h2 class="section-title" data-i18n="schemesTitle"></h2>
+      <div class="panel-box" id="col-schemes" data-tab="schemes">
+        <div class="panel-head"><h2 data-i18n="schemesTitle"></h2><p data-i18n="schemesHint"></p></div>
         <div id="schemes" class="schemes"></div>
       </div>
 
-      <nav class="tabs" id="phase2Tabs">
-        <button data-panel="fix" class="active" data-i18n="tabFix"></button>
-        <button data-panel="doctor" data-i18n="tabDoctor"></button>
-        <button data-panel="letters" data-i18n="tabLetters"></button>
-        <button data-panel="helper" data-i18n="tabHelper"></button>
-      </nav>
-      <div id="panel-fix" class="panel"><p class="muted" data-i18n="comingSoon"></p></div>
-      <div id="panel-doctor" class="panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
-      <div id="panel-letters" class="panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
-      <div id="panel-helper" class="panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
+      <div class="panel-box">
+        <nav class="tabs" id="phase2Tabs">
+          <button data-panel="fix" class="active" data-i18n="tabFix"></button>
+          <button data-panel="doctor" data-i18n="tabDoctor"></button>
+          <button data-panel="letters" data-i18n="tabLetters"></button>
+          <button data-panel="helper" data-i18n="tabHelper"></button>
+        </nav>
+        <div id="panel-fix" class="tab-panel"><p class="muted" data-i18n="comingSoon"></p></div>
+        <div id="panel-doctor" class="tab-panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
+        <div id="panel-letters" class="tab-panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
+        <div id="panel-helper" class="tab-panel hidden"><p class="muted" data-i18n="comingSoon"></p></div>
+      </div>
     </section>
 
-    <!-- Column 3: agent panel -->
-    <aside id="col-agent" class="col col-agent" data-tab="agent">
-      <div class="agent-head">
-        <span>🧠 <span data-i18n="agentTitle"></span></span>
-        <span class="agent-steps" id="planSteps"></span>
-      </div>
+    <!-- Column 3: agent activity -->
+    <aside id="col-agent" class="col col-agent panel-box" data-tab="agent" aria-labelledby="agentHead">
+      <div class="panel-head"><h2 id="agentHead" data-i18n="agentTitle"></h2><p data-i18n="agentHint"></p></div>
+      <ol class="stepper" id="planSteps"></ol>
       <ol id="agentLog" class="agent-log"></ol>
     </aside>
   </main>
 
-  <!-- Phone bottom tabs -->
-  <nav class="bottom-tabs">
-    <button data-show="chat" class="active">💬<span data-i18n="mChat"></span></button>
-    <button data-show="family">👪<span data-i18n="mFamily"></span></button>
-    <button data-show="schemes">✅<span data-i18n="mSchemes"></span></button>
-    <button data-show="agent">🧠<span data-i18n="mAgent"></span></button>
+  <nav class="bottom-tabs" aria-label="Sections">
+    <button data-show="chat" class="active" data-i18n="mChat"></button>
+    <button data-show="family" data-i18n="mFamily"></button>
+    <button data-show="schemes" data-i18n="mSchemes"></button>
+    <button data-show="agent" data-i18n="mAgent"></button>
   </nav>
 
-  <footer class="footer" data-i18n="footer"></footer>
-  <div id="toasts" class="toasts"></div>
+  <footer class="site-footer">
+    <div class="container">
+      <p><strong data-i18n="disclaimerTitle"></strong> <span data-i18n="disclaimer"></span></p>
+      <p class="muted" data-i18n="footerMeta"></p>
+    </div>
+  </footer>
+  <div id="toasts" class="toasts" role="status"></div>
   <script src="app.js"></script>
 </body>
 </html>

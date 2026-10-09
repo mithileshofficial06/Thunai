@@ -1,6 +1,13 @@
 # UI/UX Design Brief — Thunai (துணை) 🔒 FINAL
 
-> **Update (9 Oct, during the build): visual style changed to clean neo-brutalism** at the team's request.
+> **Final update (9 Oct): visual style is a clean government-portal design** (supersedes the brutalist trial below).
+> Tricolour strip, white header with wordmark, navy service bar, white panels with 1px borders and 4px radius,
+> summary boxes, data tables with "Edit" links, plain-text status tags (Eligible / Needs information / Not eligible),
+> a text-labelled agent activity log, and a disclaimer footer. **No emojis anywhere** (UI and backend messages).
+> Palette: navy #1B3A6B, link #0B57D0, background #F4F6F9, borders #D5DBE3, status green #0F7B3E / amber #9A5B00 / red #B42318.
+> Fonts: Segoe UI + Nirmala UI (Tamil). Implemented in `static/index.html`, `static/style.css`, `static/app.js`.
+>
+> **Earlier trial (superseded): visual style changed to clean neo-brutalism** at the team's request.
 > Thick 3px black borders, hard offset shadows (no blur), square corners, flat bold palette
 > (paper #F4F1E8, ink #0A0A0A, signal yellow #FFE14D, mint #9AF2C8, sky #A5D8FF, pink #FFB3C7, status green/amber/red),
 > heavy uppercase headings (Arial Black / Segoe UI Black, Nirmala UI for Tamil), monospace labels (Consolas),

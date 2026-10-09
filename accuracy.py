@@ -137,7 +137,7 @@ def check(result_bundle, facts, text, from_voice=False):
         return None
 
     agree_note = "2 models agreed" if two else "1 model (please confirm)"
-    summary = f"{agree_note} · evidence ✓ · numbers ✓" if not rejected else f"{agree_note} · {len(rejected)} item(s) dropped by checks"
+    summary = f"{agree_note}; evidence and numbers verified" if not rejected else f"{agree_note}; {len(rejected)} item(s) dropped by checks"
     return {
         "accepted": accepted, "unconfirmed": unconfirmed, "ask": ask, "rejected": rejected,
         "actions": actions,

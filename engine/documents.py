@@ -6,6 +6,13 @@ from engine.data import DOCUMENTS, DOCUMENTS_FILE, OFFICES, SCHEMES_BY_ID, TASKS
 
 CHECK_OFFICE = {"en": "Check in 1 minute (on your phone)", "ta": "1 நிமிடத்தில் சரிபார்க்கவும் (கைபேசியில்)", "trip": False}
 BANK_DOCS = ("bank_account_aadhaar_seeded", "student_bank_account_aadhaar_seeded")
+SHORT_DOC_TASK = {
+    "bank_account_aadhaar_seeded": ("Link Aadhaar to an active bank account", "செயலில் உள்ள வங்கிக் கணக்குடன் ஆதாரை இணைக்கவும்"),
+    "student_bank_account_aadhaar_seeded": ("Open own bank account and link Aadhaar", "சொந்த வங்கிக் கணக்கு தொடங்கி ஆதாரை இணைக்கவும்"),
+    "patta_land_record": ("Get patta in own name", "சொந்தப் பெயரில் பட்டா பெறவும்"),
+    "husband_death_certificate": ("Get husband's death certificate", "கணவரின் இறப்புச் சான்றிதழ் பெறவும்"),
+    "ration_card": ("Apply for a ration card", "குடும்ப அட்டைக்கு விண்ணப்பிக்கவும்"),
+}
 LEVEL_ORDER = {"GREEN": 0, "YELLOW": 1, "RED": 2}
 NAME_LEVEL_TEXT = DOCUMENTS_FILE["name_check"]["levels"]
 
@@ -152,6 +159,8 @@ def analyse(derived, verdicts):
         entry = office_tasks.setdefault(office, {"unblocks": set(), "tasks": {}})
         entry["unblocks"].add(scheme_id)
         task["done"] = bool(done_flags.get(task["task_id"]))
+        task.setdefault("short_en", task["en"][:60])
+        task.setdefault("short_ta", task["ta"][:60])
         entry["tasks"].setdefault(task["task_id"], task)
 
     for v in counted:
@@ -176,11 +185,14 @@ def analyse(derived, verdicts):
                                 "where_en": info["if_missing"]["en"], "where_ta": info["if_missing"]["ta"]})
                 be, bt = _bring(office)
                 add_task(office, s["id"], {"task_id": f"{m['id']}:{doc}", "member_name": name,
+                                           "short_en": SHORT_DOC_TASK.get(doc, (info["en"], info["ta"]))[0],
+                                           "short_ta": SHORT_DOC_TASK.get(doc, (info["en"], info["ta"]))[1],
                                            "en": info["if_missing"]["en"], "ta": info["if_missing"]["ta"],
                                            "bring_en": be, "bring_ta": bt, "kind": "fix"})
             elif have is None and doc in BANK_DOCS and info.get("check_in_1_minute"):
                 c = info["check_in_1_minute"]
                 add_task("check", s["id"], {"task_id": f"{m['id']}:check_bank", "member_name": name,
+                                            "short_en": "Check Aadhaar-bank link online", "short_ta": "ஆதார்-வங்கி இணைப்பைச் சரிபார்க்கவும்",
                                             "en": f"Check if {name}'s Aadhaar is linked to the bank: {c['en']}",
                                             "ta": f"{name} — வங்கியுடன் ஆதார் இணைப்பைச் சரிபார்க்கவும்: {c['ta']}",
                                             "bring_en": "Phone", "bring_ta": "கைபேசி", "kind": "check", "url": c.get("url")})
@@ -192,6 +204,7 @@ def analyse(derived, verdicts):
                 count += 1
                 be, bt = _bring(info["office"])
                 add_task(info["office"], s["id"], {"task_id": f"{m['id']}:{t}", "member_name": name,
+                                                   "short_en": info["en"], "short_ta": info["ta"],
                                                    "en": f"{info['en']}: {info['how_en']}", "ta": f"{info['ta']}: {info['how_ta']}",
                                                    "bring_en": be, "bring_ta": bt, "kind": "fix"})
 
@@ -201,12 +214,15 @@ def analyse(derived, verdicts):
         elif level == "RED":
             count += 1
             add_task("aadhaar_centre", s["id"], {"task_id": f"{m['id']}:fix_name", "member_name": name,
+                                                 "short_en": "Correct the name on documents", "short_ta": "ஆவணங்களில் பெயரைத் திருத்தவும்",
                                                  "en": "Correct the name so it matches on all documents",
                                                  "ta": "எல்லா ஆவணங்களிலும் பெயர் ஒன்றாக இருக்கும்படி திருத்தவும்",
                                                  "bring_en": "Aadhaar + the other document", "bring_ta": "ஆதார் + மற்ற ஆவணம்", "kind": "fix"})
         if apply_office:
             be, bt = _bring(apply_office)
             add_task(apply_office, s["id"], {"task_id": f"{m['id']}:apply:{s['id']}", "member_name": name,
+                                             "short_en": f"Apply for {s['name_en'].split(' (')[0]}",
+                                             "short_ta": f"{s['name_ta'].split(' (')[0]}: விண்ணப்பிக்கவும்",
                                              "en": f"Apply for {s['name_en']}" if apply_office != "online" else s.get("how_to_apply_en", ""),
                                              "ta": f"{s['name_ta']} — விண்ணப்பிக்கவும்" if apply_office != "online" else s.get("how_to_apply_ta", ""),
                                              "bring_en": be, "bring_ta": bt, "kind": "apply"})

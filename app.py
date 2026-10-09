@@ -106,12 +106,12 @@ def doctor(body: DoctorIn):
     if body.entry_id:
         step = doctor_engine.start(body.entry_id)
         s["doctor"] = {"entry_id": body.entry_id, "tree": step["tree"], "path": step["path"], "step": step}
-        events = [agent.ev("tool", "🔧", f"run_doctor  {body.entry_id}")]
+        events = [agent.ev("tool", "", f"run_doctor  {body.entry_id}")]
     elif body.answer and s["doctor"]:
         d = s["doctor"]
         step = doctor_engine.answer(d["tree"], d["path"], body.answer)
         d.update(path=step["path"], step=step)
-        events = [agent.ev("tool", "🔧", f"doctor_step  answer: {body.answer} → {step['node_id']}")]
+        events = [agent.ev("tool", "", f"doctor_step  answer: {body.answer} → {step['node_id']}")]
     else:
         raise HTTPException(400, "give entry_id or answer")
     return {"events": events, "step": s["doctor"]["step"]}
