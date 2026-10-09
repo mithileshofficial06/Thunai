@@ -273,5 +273,12 @@ def simulate(body: SimIn):
     return _out(s, events, s["snapshot"])
 
 
+# Accounts + history (F1) and the official source check (S2).
+import routes_admin  # noqa: E402
+import routes_auth  # noqa: E402
+
+app.include_router(routes_auth.router)
+app.include_router(routes_admin.router)
+
 # Mounted last so /api routes take priority.
 app.mount("/", StaticFiles(directory=config.STATIC_DIR, html=True), name="static")
